@@ -1,10 +1,41 @@
 ;;;; find-points.lisp
 (in-package #:porph-screen)
+;; Data Structures
+(defstruct spectra "The series of absorbance and wavelength data" nm abs)
+(defstruct point "Cartesian co-ordinates" x y )
+(defstruct triangle "The three points in an absorbance curve" base1 peak base2)
 
-(defun read-data (&optional (file-path #P"/Users/matthew/lisp/site/porph-screen/data/test-data.csv"))
-"Read in the csv and parse the numbers"
-  (cl-csv:read-csv file-path
-                   :map-fn #'(lambda (line) (mapcar #'parse-number line))))
+
+(defun clean-up (&optional (file #P"2014-08-14.csv"))
+  (let ((str (make-array 0
+                         :element-type 'character
+                         :adjustable t
+                         :fill-pointer 0)))
+    (with-open-file (in file :direction :input)
+      (loop for line = (read-line in nil 'foo)
+         until (eq line 'foo)
+         do (let ((new-line (string-trim '(#\, #\Space #\Tab #\Newline #\Return) line)))
+              (format str "~A~%" new-line))))
+    (make-string-input-stream str)))
+
+(defun read-data (&optional (data (clean-up)))
+  "Read in the csv and parse the numbers"
+  (let* ((data-set (cl-csv:read-csv file-path
+                                    :map-fn
+                                    #'(lambda (line) (mapcar #'parse-number line))))
+         ())))
+
+(defparameter *raw-data* (clean-up))
+
+(defun get-sample-names (raw-data)
+  (let ((id-line (car raw-data))
+        (ids nil))
+    (dolist (entry id-line (reverse ids))
+      (cond ((not (equalp entry ""))(push entry ids))
+            (t nil)))))
+
+(defun make-spectra-list (raw-data)
+  (let* ((numerical-data (cddr )))))
 
 (defun rotate (list-of-lists)
 "Matrix transpose a list of lists so that column-major data becomes row major."
@@ -12,12 +43,11 @@
 
 (defparameter *rotated-data* (rotate(read-data)))
 
-(defstruct spectra "The series of absorbance and wavelength data" nm abs)
 (defparameter *data-set* (make-spectra :nm (first *rotated-data*)
                                        :abs (second *rotated-data*)))
 
-(defparameter *aloa* (second (rotate(read-data))) "a list of absorbance readings")
-(defparameter *alon* (first (rotate(read-data))) "a list of wavelengths")
+;; (defparameter *aloa* (second (rotate(read-data))) "a list of absorbance readings")
+;; (defparameter *alon* (first (rotate(read-data))) "a list of wavelengths")
 
 (defun two-by-two (a-func a-list)
            (loop for (a b) on a-list by #'cddr collect (funcall a-func a b)))
@@ -54,25 +84,26 @@
     (/ sum n)))
 
 (defun smooth-struct (spectra-struct n)
-  (let ((alon (spectra-nm spectra-struct))
-        (aloa (spectra-abs spectra-struct))
-        (labels ((rolling-mean )) )
-        (mean-aloa (cond ((< (length aloa) n) nil)
-                         (t (cons (mean (subseq a-list 0 n))
-                                  (window-mean (cdr a-list) n))))))
-
-    ))
-
-;;(window-mean '(1 2 3 4 5 6 7 8 9) 3)
+  "apply a rolling mean and return a struct
+struct-abs: smooth
+struct-nm: trimmed on each end to mimic a middle position in the window "
+  (labels ((rolling-mean (aloa n)
+             (cond ((< (length aloa) n) nil)
+                   (t (cons (mean (subseq aloa 0 n))
+                            (rolling-mean (cdr aloa) n))))))
+    (let* ((alon (spectra-nm spectra-struct))
+           (aloa (spectra-abs spectra-struct))
+           (len (length alon))
+           (smooth-aloa (rolling-mean aloa n))
+           ;(mid-point (truncate n 2))
+           ;(trimmed-alon (subseq alon mid-point
+           (trimmed-alon (subseq alon 0 (- len n))))
+      (make-spectra :nm trimmed-alon :abs smooth-aloa))))
 
 (defun smoothed-2derivative (specta-struct n)
 "Apply a running window of length n mean to the second derivative"
-  (let* ((derivative (second-derivative specta-struct))
-         (dx (spectra-nm derivative))
-         (dy (spectra-abs derivative))
-         (smoothed (rolling-mean dy n))
-         (trimmed-x (subseq dx 0 (- (length dx) n))))
-    (make-spectra :nm trimmed-x :abs smoothed)))
+  (let ((derivative (second-derivative specta-struct)))
+    (smooth-struct derivative n)))
 
 ;; Inflection points are where the function changes concavity. Since
 ;; concave up corresponds to a positive second derivative and concave
@@ -80,34 +111,11 @@
 ;; function changes from concave up to concave down (or vise versa)
 ;; the second derivative must equal zero at that point.
 
-;; (with-open-file (out #p "~/Desktop/derivative.txt" :direction :output)
-;;   (mapcar #'(lambda (n a) (format out "~D   ~D~%" n a))
-;;           (mid-point *alon*) (derivative *aloa*)))
-
-;; (with-open-file (out #p "~/Desktop/2derivative.txt" :direction :output)
-;;   (mapcar #'(lambda (n a) (format out "~D   ~D~%" n a))
-;;           (mid-point (mid-point *alon*)) (derivative (derivative *aloa*))))
-
-(plot-data "test" (derivative *data-set*))
-
-(plot-data "test2" (second-derivative *data-set*))
-
-(plot-data "test3" (smoothed-2derivative *data-set* 5))
-
-(defun gp-format-data (filename specta-struct)
-  (with-open-file (out filename :direction :output)
-    (apply #'mapcar #'(lambda (n a) (format out "~D   ~D~%" n a)) specta-struct)))
-
 ;; Divide the graph into regions
 ;; Base1: 370 - 400 smoothed second derivative closest to zero i.e min abs value
 ;; Peak:  400 - 410 maximum abs in range
 ;; Base2: 410 - 450 smoothed second derivative closest to zero i.e min abs value
-
-;;(apply #'max *aloa*)
-
 ;; Find the wavelength with the maximum absorbance
-(nth (position (apply #'max *aloa*) *aloa*) *alon*)
-
 ;; The max absorbance should be between 400 and 410nm
 (defun make-coordinate-pairs (rotated-data)
   (pairlis (first rotated-data) (second rotated-data)))
@@ -127,8 +135,6 @@
          (max-nm (nth (position max-abs aloa) alon)))
     (make-point :x max-nm :y max-abs)))
 
-(find-peak *data-set* 400 410)
-
 (defun find-nearest-point (nm spectra-struct)
   (let* ((alon (spectra-nm spectra-struct))
          (aloa (spectra-abs spectra-struct))
@@ -142,9 +148,9 @@
         (abs (nth min-position aloa)))
     (make-point :x nm :y abs)))
 
-(defun find-base (spectra-struct lower-limit upper-limit)
-  (let* ((alon (spectra-nm spectra-struct))
-         (aloa (spectra-abs spectra-struct))
+(defun find-base (raw-struct derivative-struct lower-limit upper-limit)
+  (let* ((alon (spectra-nm derivative-struct))
+         (aloa (spectra-abs derivative-struct))
          (nm-window (mapcan
                      #'(lambda (x)
                          (and (> x lower-limit)
@@ -157,6 +163,16 @@
          (near-0-position (+ (position min-val abs-values)
                                 (first nm-window)))
          (base-nm (nth near-0-position alon)))
-    (find-nearest-point base-nm spectra-struct)))
+    (find-nearest-point base-nm raw-struct)))
 
-(find-base (smoothed-2derivative *data-set* 5) 385 400)
+(defun find-triangle (spectra-struct &optional
+                                       (first 375) (second 400) (third 420) (fourth 430)
+                                       (window 5))
+"Document here please"
+  (let* ((peak (find-peak spectra-struct second third))
+        (smoothed (smoothed-2derivative spectra-struct window))
+        (base1 (find-base spectra-struct smoothed first second))
+        (base2 (find-base spectra-struct smoothed third fourth)))
+    (make-triangle :base1 base1 :peak peak :base2 base2)))
+
+;(find-triangle *data-set*)

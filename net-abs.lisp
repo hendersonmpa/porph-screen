@@ -1,36 +1,33 @@
 ;;;; letter-writer.lisp
 (in-package #:porph-screen)
 
-(defstruct point "Cartesian co-ordinates" x y )
-;; (setf peak (make-point :x 406 :y 0.5793))
-;; (setf base1 (make-point :x 390 :y 0.5639))
-;; (setf base2 (make-point :x 425 :y 0.4449))
+;; (defparameter *peak* (find-peak *data-set* 400 410))
+;; (defparameter *base1* (find-base *data-set* (smoothed-2derivative *data-set* 5) 375 400))
+;; (defparameter *base2* (find-base *data-set* (smoothed-2derivative *data-set* 5) 410 430))
+(defparameter *triangle* (find-triangle *data-set*))
 
-(defstruct curve "The three points in an absorbance curve" base1 base2 peak)
-;; (setf curve1 (make-curve :base1 base1 :base2 base2 :peak peak))
-
-(defun parse-line (line)
-  (let* ((nline (mapcar #'parse-number:parse-number line))
-         (base1 (make-point :x (first nline) :y (second nline)))
-         (base2 (make-point :x (third nline) :y (fourth nline)))
-         (peak (make-point :x (fifth nline) :y (sixth nline)))
-         (curve (make-curve :base1 base1 :base2 base2 :peak peak)))
-    curve))
+;; (defun parse-line (line)
+;;   (let* ((nline (mapcar #'parse-number:parse-number line))
+;;          (base1 (make-point :x (first nline) :y (second nline)))
+;;          (base2 (make-point :x (third nline) :y (fourth nline)))
+;;          (peak (make-point :x (fifth nline) :y (sixth nline)))
+;;          (curve (make-curve :base1 base1 :base2 base2 :peak peak)))
+;;     curve))
 
 ;; (parse-number:parse-number "5.5")
 ;; (mapcar  #'parse-number:parse-number '("5.5" "6.544" "0.645"))
 ;; (parse-line '(393.4 0.6467 415.85 0.4299 404.43 0.9408))
 ;; (point-x (curve-base1 (parse-line '(393.4 0.6467 415.85 0.4299 404.43 0.9408))))
 
-(defun delta (a-func point1 point2)
+(defun delta (a-func base1 base2)
   "Difference between the x or y values of each point"
-  (- (funcall a-func point2)
-     (funcall a-func point1)))
+  (- (funcall a-func base2)
+     (funcall a-func base1)))
 
-(defun slope (point1 point2)
+(defun slope (base1 base2)
 "What is the slope of the line between p1 and p2"
-  (/ (delta #'point-y point1 point2)
-     (delta #'point-x point1 point2)))
+  (/ (delta #'point-y base1 base2)
+     (delta #'point-x base1 base2)))
 
 ;;(slope base1 base2)
 
@@ -56,10 +53,10 @@
 
 ;;(interpolate peak base1 base2)
 
-(defun net-abs (curve)
-  (let* ((peak (curve-peak curve))
-         (base1 (curve-base1 curve))
-         (base2 (curve-base2 curve))
+(defun net-abs (triangle)
+  (let* ((peak (triangle-peak triangle))
+         (base1 (triangle-base1 triangle))
+         (base2 (triangle-base2 triangle))
          (baseline (interpolate peak base1 base2)))
     (delta #'point-y baseline peak)))
 
@@ -71,7 +68,7 @@
 ;;     (push (nth 10 row) accum))
 ;;   accum)
 
-;;(net-abs curve1)
+;;(net-abs triangle1)
 
 ;; (cl-csv:read-csv "393.4,0.6467,415.85,0.4299,404.43,0.9408")
 ;; (cl-csv:do-csv (row #P"~/Desktop/Porphyrin Screen data.csv")
@@ -79,14 +76,14 @@
 ;; (cl-csv:read-csv #P"~/Desktop/Porphyrin Screen data.csv"
 ;;                  :map-fn #'parse-line)
 
-(defun csv-map (a-func path-to-file)
-  (with-open-file (out #P"/Users/matthew/lisp/site/porph-screen/dat/Net_Abs.csv"
-                       :direction :output
-                       :if-exists :supersede)
-    (let* ((curve-list (cl-csv:read-csv path-to-file
-                                        :map-fn #'parse-line))
-           (abs (mapcar a-func curve-list)))
-      (format out "~{~D~%~}" abs))))
+;; (defun csv-map (a-func path-to-file)
+;;   (with-open-file (out #P"/Users/matthew/lisp/site/porph-screen/dat/Net_Abs.csv"
+;;                        :direction :output
+;;                        :if-exists :supersede)
+;;     (let* ((triangle-list (cl-csv:read-csv path-to-file
+;;                                         :map-fn #'parse-line))
+;;            (abs (mapcar a-func triangle-list)))
+;;       (format out "~{~D~%~}" abs))))
 
 ;;(csv-map #'net-abs #P"~/Desktop/Porphyrin Screen data.csv")
 

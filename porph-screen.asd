@@ -10,4 +10,5 @@
   :components ((:file "package")
                (:file "find-points")
                (:file "net-abs")
+               (:file "plot")
                (:file "porph-screen")))

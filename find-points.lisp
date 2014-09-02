@@ -1,7 +1,7 @@
 ;;;; find-points.lisp
 (in-package #:porph-screen)
 ;; Data Structures
-(defstruct spectra "The series of absorbance and wavelength data" nm abs)
+(defstruct spectra "Key information about the spectra" id nm abs triangle formula)
 (defstruct point "Cartesian co-ordinates" x y )
 (defstruct triangle "The three points in an absorbance curve" base1 peak base2)
 
@@ -18,28 +18,48 @@
               (format str "~A~%" new-line))))
     (make-string-input-stream str)))
 
-(defun read-data (&optional (data (clean-up)))
-  "Read in the csv and parse the numbers"
-  (let* ((data-set (cl-csv:read-csv file-path
-                                    :map-fn
-                                    #'(lambda (line) (mapcar #'parse-number line))))
-         ())))
-
-(defparameter *raw-data* (clean-up))
-
-(defun get-sample-names (raw-data)
-  (let ((id-line (car raw-data))
+(defun get-sample-names (sample-data)
+  (let ((id-line (car sample-data))
         (ids nil))
     (dolist (entry id-line (reverse ids))
       (cond ((not (equalp entry ""))(push entry ids))
             (t nil)))))
 
-(defun make-spectra-list (raw-data)
-  (let* ((numerical-data (cddr )))))
+(defun remove-empty (lol)
+  (let ((accum nil))
+    (dolist (row lol (reverse accum))
+      (cond ((not (equalp row '(""))) (push row accum))
+            (t nil)))))
 
 (defun rotate (list-of-lists)
 "Matrix transpose a list of lists so that column-major data becomes row major."
   (apply #'mapcar #'list list-of-lists))
+
+(defun list-of-spectra (ids rotated-data)
+  (labels ((str-to-num (line)
+             (mapcar #'parse-number line)))
+    (loop for (nm abs) on rotated-data by #'cddr
+       for id in ids collect
+         (make-spectra :id id
+                       :nm  (str-to-num nm)
+                       :abs (str-to-num abs)))))
+
+(defun parse-data (&optional (data-stream (clean-up)))
+  "Read in the csv and parse the numbers"
+  (let* ((sample-data
+          (let ((accum nil))
+            (dotimes (line 2 (reverse accum))
+              (push (car (cl-csv:read-csv (read-line data-stream nil 'eol))) accum))))
+         (ids (get-sample-names sample-data))
+         (data-set (remove-empty (cl-csv:read-csv data-stream)))
+         (rotated-data (rotate data-set))
+         (spectra (list-of-spectra ids rotated-data)))
+  spectra))
+
+
+    ;;:map-fn
+    ;; #'(lambda (line)
+(defparameter *raw-data* (clean-up))
 
 (defparameter *rotated-data* (rotate(read-data)))
 
@@ -50,7 +70,7 @@
 ;; (defparameter *alon* (first (rotate(read-data))) "a list of wavelengths")
 
 (defun two-by-two (a-func a-list)
-           (loop for (a b) on a-list by #'cddr collect (funcall a-func a b)))
+  (loop for (a b) on a-list by #'cddr collect (funcall a-func a b)))
 
 (defun mid-point (alon)
   "Find the mid-points between wavelengths to correspond to the derivative points"
@@ -175,4 +195,7 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
         (base2 (find-base spectra-struct smoothed third fourth)))
     (make-triangle :base1 base1 :peak peak :base2 base2)))
 
-;(find-triangle *data-set*)
+
+;; (dolist (spectra (parse-data) spectra)
+;;   (setf (spectra-triangle spectra) (find-triangle spectra))
+;;   (print spectra))

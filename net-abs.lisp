@@ -1,10 +1,10 @@
 ;;;; letter-writer.lisp
-(in-package #:porph-screen)
+(in-package :porph-screen)
 
 ;; (defparameter *peak* (find-peak *data-set* 400 410))
 ;; (defparameter *base1* (find-base *data-set* (smoothed-2derivative *data-set* 5) 375 400))
 ;; (defparameter *base2* (find-base *data-set* (smoothed-2derivative *data-set* 5) 410 430))
-(defparameter *triangle* (find-triangle *data-set*))
+;; (defparameter *triangle* (find-triangle *data-set*))
 
 ;; (defun parse-line (line)
 ;;   (let* ((nline (mapcar #'parse-number:parse-number line))
@@ -53,41 +53,17 @@
 
 ;;(interpolate peak base1 base2)
 
-(defun net-abs (triangle)
-  (let* ((peak (triangle-peak triangle))
+(defun net-abs (spectra-struct)
+  (let* ((triangle (spectra-triangle spectra-struct))
+         (peak (triangle-peak triangle))
          (base1 (triangle-base1 triangle))
          (base2 (triangle-base2 triangle))
          (baseline (interpolate peak base1 base2)))
     (delta #'point-y baseline peak)))
 
-;; (let ((input (cl-csv:read-csv #P"~/Desktop/fecal_screen.csv")))
-;;   (loop for i in input collect (nth 10 i)))
-
-;; (let ((accum nil))
-;;   (cl-csv:do-csv (row #P"~/Desktop/fecal_screen.csv")
-;;     (push (nth 10 row) accum))
-;;   accum)
-
 ;;(net-abs triangle1)
 
-;; (cl-csv:read-csv "393.4,0.6467,415.85,0.4299,404.43,0.9408")
-;; (cl-csv:do-csv (row #P"~/Desktop/Porphyrin Screen data.csv")
-;;   (format t "~D~%" (parse-line row)))
-;; (cl-csv:read-csv #P"~/Desktop/Porphyrin Screen data.csv"
-;;                  :map-fn #'parse-line)
 
-;; (defun csv-map (a-func path-to-file)
-;;   (with-open-file (out #P"/Users/matthew/lisp/site/porph-screen/dat/Net_Abs.csv"
-;;                        :direction :output
-;;                        :if-exists :supersede)
-;;     (let* ((triangle-list (cl-csv:read-csv path-to-file
-;;                                         :map-fn #'parse-line))
-;;            (abs (mapcar a-func triangle-list)))
-;;       (format out "~{~D~%~}" abs))))
-
-;;(csv-map #'net-abs #P"~/Desktop/Porphyrin Screen data.csv")
-
-;; (net-abs-map #P"~/Desktop/Porphyrin Screen data.csv")
 
 ;; (defun net-abs-do (file)
 ;;   (with-open-file (str file :direction :input)
@@ -96,11 +72,11 @@
 ;;         ((eql line 'eof))
 ;;       (let ((abs (net-abs ))) format t "~A~%" line))))
 
-(defun pseudo-cat (file)
-  (with-open-file (str file :direction :input)
-    (do ((line (read-line str nil 'eof)
-               (read-line str nil 'eof)))
-        ((eql line 'eof))
-      (format t "~A~%" line))))
+;; (defun pseudo-cat (file)
+;;   (with-open-file (str file :direction :input)
+;;     (do ((line (read-line strm nil 'eof)
+;;                (read-line strm nil 'eof)))
+;;         ((eql line 'eof))
+;;       (format t "~A~%" line))))
 
 ;; (pseudo-cat "~/Desktop/Porphyrin Screen data.csv")

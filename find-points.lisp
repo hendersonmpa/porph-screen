@@ -1,73 +1,6 @@
 ;;;; find-points.lisp
-(in-package #:porph-screen)
-;; Data Structures
-(defstruct spectra "Key information about the spectra" id nm abs triangle formula)
-(defstruct point "Cartesian co-ordinates" x y )
-(defstruct triangle "The three points in an absorbance curve" base1 peak base2)
+(in-package :porph-screen)
 
-
-(defun clean-up (&optional (file #P"2014-08-14.csv"))
-  (let ((str (make-array 0
-                         :element-type 'character
-                         :adjustable t
-                         :fill-pointer 0)))
-    (with-open-file (in file :direction :input)
-      (loop for line = (read-line in nil 'foo)
-         until (eq line 'foo)
-         do (let ((new-line (string-trim '(#\, #\Space #\Tab #\Newline #\Return) line)))
-              (format str "~A~%" new-line))))
-    (make-string-input-stream str)))
-
-(defun get-sample-names (sample-data)
-  (let ((id-line (car sample-data))
-        (ids nil))
-    (dolist (entry id-line (reverse ids))
-      (cond ((not (equalp entry ""))(push entry ids))
-            (t nil)))))
-
-(defun remove-empty (lol)
-  (let ((accum nil))
-    (dolist (row lol (reverse accum))
-      (cond ((not (equalp row '(""))) (push row accum))
-            (t nil)))))
-
-(defun rotate (list-of-lists)
-"Matrix transpose a list of lists so that column-major data becomes row major."
-  (apply #'mapcar #'list list-of-lists))
-
-(defun list-of-spectra (ids rotated-data)
-  (labels ((str-to-num (line)
-             (mapcar #'parse-number line)))
-    (loop for (nm abs) on rotated-data by #'cddr
-       for id in ids collect
-         (make-spectra :id id
-                       :nm  (str-to-num nm)
-                       :abs (str-to-num abs)))))
-
-(defun parse-data (&optional (data-stream (clean-up)))
-  "Read in the csv and parse the numbers"
-  (let* ((sample-data
-          (let ((accum nil))
-            (dotimes (line 2 (reverse accum))
-              (push (car (cl-csv:read-csv (read-line data-stream nil 'eol))) accum))))
-         (ids (get-sample-names sample-data))
-         (data-set (remove-empty (cl-csv:read-csv data-stream)))
-         (rotated-data (rotate data-set))
-         (spectra (list-of-spectra ids rotated-data)))
-  spectra))
-
-
-    ;;:map-fn
-    ;; #'(lambda (line)
-(defparameter *raw-data* (clean-up))
-
-(defparameter *rotated-data* (rotate(read-data)))
-
-(defparameter *data-set* (make-spectra :nm (first *rotated-data*)
-                                       :abs (second *rotated-data*)))
-
-;; (defparameter *aloa* (second (rotate(read-data))) "a list of absorbance readings")
-;; (defparameter *alon* (first (rotate(read-data))) "a list of wavelengths")
 
 (defun two-by-two (a-func a-list)
   (loop for (a b) on a-list by #'cddr collect (funcall a-func a b)))
@@ -115,9 +48,10 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
            (aloa (spectra-abs spectra-struct))
            (len (length alon))
            (smooth-aloa (rolling-mean aloa n))
+           (trimmed-alon (subseq alon 0 (- len n)))
            ;(mid-point (truncate n 2))
-           ;(trimmed-alon (subseq alon mid-point
-           (trimmed-alon (subseq alon 0 (- len n))))
+          ;(trimmed-alon (subseq alon mid-point (- len mid-point)))
+           )
       (make-spectra :nm trimmed-alon :abs smooth-aloa))))
 
 (defun smoothed-2derivative (specta-struct n)
@@ -161,7 +95,6 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
          (abs-diffs (mapcar
                 #'(lambda (x)
                     (abs (- x nm))) alon))
-         ;(abs-diffs (mapcar #'abs diffs))
          (min-diff (apply #'min abs-diffs))
         (min-position (position min-diff abs-diffs))
         (nm (nth min-position alon))
@@ -179,10 +112,11 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
          (abs-values (mapcar #'abs (subseq aloa
                                            (first nm-window)
                                            (car (last nm-window)))))
-         (min-val (apply #'min abs-values))
-         (near-0-position (+ (position min-val abs-values)
+         (val (apply #'min abs-values))
+         ;; (val (apply #'max abs-values))
+         (base-location (+ (position val abs-values)
                                 (first nm-window)))
-         (base-nm (nth near-0-position alon)))
+         (base-nm (nth base-location alon)))
     (find-nearest-point base-nm raw-struct)))
 
 (defun find-triangle (spectra-struct &optional
@@ -194,8 +128,3 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
         (base1 (find-base spectra-struct smoothed first second))
         (base2 (find-base spectra-struct smoothed third fourth)))
     (make-triangle :base1 base1 :peak peak :base2 base2)))
-
-
-;; (dolist (spectra (parse-data) spectra)
-;;   (setf (spectra-triangle spectra) (find-triangle spectra))
-;;   (print spectra))

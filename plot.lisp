@@ -10,9 +10,11 @@
 ;;           (mid-point (mid-point *alon*)) (derivative (derivative *aloa*))))
 
 
-(defun gp-format-data (filename specta-struct)
-  (with-open-file (out filename :direction :output)
-    (apply #'mapcar #'(lambda (n a) (format out "~D   ~D~%" n a)) specta-struct)))
+(defun gp-format-data (filename spectra-struct)
+  (with-open-file (out filename :direction :output
+                       :if-exists :supersede)
+    (apply #'mapcar #'(lambda (n a) (format out "~D~C~D~%" n #\tab a))
+           (list (spectra-nm spectra-struct) (spectra-abs spectra-struct)))))
 
 (defun formula-string (strm spectra-struct)
   (let* ((triangle-struct (spectra-triangle spectra-struct))

@@ -97,6 +97,21 @@ textarea {
    Author's custom styles
    ========================================================================== */
 
+#header .strapline {
+	font: 100% Georgia, "Times New Roman", Times, serif;
+	color: #778899;
+	font-size: 3em;
+	background-color: transparent;
+	float: left;
+	margin-left: 2em;
+	margin-top: 0.7em;
+}
+
+/* #header .logo { */
+/* 	float: left; */
+/* 	margin-left: 1.5em; */
+/* 	margin-top: 0.5em; */
+/* } */
 
 /*
 Tables

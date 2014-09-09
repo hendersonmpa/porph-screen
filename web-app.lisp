@@ -51,7 +51,7 @@
                         :alt "Cary-60"
                         :class "logo")
                   (:span :class "strapline"
-                         "Division of Biochemistry The Ottawa Hospital"))
+                         "Division of Biochemistry: HPLC"))
             ,@body))))
 
 (define-easy-handler (select :uri "/select") ()
@@ -72,14 +72,18 @@
 ;;                (concatenate 'string "/tmp/" (cadr uploaded-file)))
 ;;   "SUCCESS")
 
+(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
+
 (define-easy-handler (upload :uri "/upload") (spectra-csv)
-  (rename-file (car spectra-csv)
-               (concatenate 'string "/Users/matthew/lisp/site/porph-screen/data/" (cadr spectra-csv)))
-  (standard-page (:title "Upload Complete")
-    (:h1 "Success!")
-    (:p  "The file: " (who:str spectra-csv) " has been uploaded")
-    (:p "Review absorbance spectra and baseline correction "
-        (:a :href "plots" "here"))))
+  (let ((file-name (concatenate 'string *data-repository* (cadr spectra-csv))))
+    (rename-file (car spectra-csv) file-name)
+    (setf *spectra* (complete-spectra *test-file*))
+    (standard-page (:title "Upload Complete")
+      (:h1 "Success!")
+      (:p  "The file has been uploaded to the server")
+      (:p "File location: " (str file-name) )
+      (:h2 "Review absorbance spectra and baseline correction "
+          (:a :href "plots" "here")))))
 
 ;; (hunchentoot:define-easy-handler (say-yo :uri "/yo") (name)
 ;;   (setf (hunchentoot:content-type*) "text/plain")
@@ -110,7 +114,7 @@
               (base2 (triangle-base2 triangle)))
          (plot-data spectra)
          (cl-who:htm
-          (:li (str (concatenate 'string "Sample ID: " id))
+          (:li ;(str (concatenate 'string "Sample ID: " id))
                (:table (:tr
                         (:th "Sample ID" )
                         (:th "Base 1 (nm)")
@@ -121,7 +125,7 @@
                         (:td (str (spectra-id spectra)))
                         (:td (str (point-x base1)))
                         (:td (str (point-x peak)))
-                        (:td (str (point-x base2)))
+                        (:td (str (point-x base2)))2
                         (:td (str (spectra-net-abs spectra)))))
                (:img :src  (concatenate 'string  "/data/" id ".png")
                      :alt "plot here"))))))))

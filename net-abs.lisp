@@ -60,23 +60,3 @@
          (base2 (triangle-base2 triangle))
          (baseline (interpolate peak base1 base2)))
     (delta #'point-y baseline peak)))
-
-;;(net-abs triangle1)
-
-
-
-;; (defun net-abs-do (file)
-;;   (with-open-file (str file :direction :input)
-;;     (do ((line (read-line str nil 'eof)
-;;                (read-line str nil 'eof)))
-;;         ((eql line 'eof))
-;;       (let ((abs (net-abs ))) format t "~A~%" line))))
-
-;; (defun pseudo-cat (file)
-;;   (with-open-file (str file :direction :input)
-;;     (do ((line (read-line strm nil 'eof)
-;;                (read-line strm nil 'eof)))
-;;         ((eql line 'eof))
-;;       (format t "~A~%" line))))
-
-;; (pseudo-cat "~/Desktop/Porphyrin Screen data.csv")

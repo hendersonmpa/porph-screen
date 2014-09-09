@@ -1,17 +1,16 @@
 ;;;; find-points.lisp
 (in-package :porph-screen)
 
-
 (defun two-by-two (a-func a-list)
   (loop for (a b) on a-list by #'cddr collect (funcall a-func a b)))
 
-(defun mid-point (alon)
-  "Find the mid-points between wavelengths to correspond to the derivative points"
-  (labels ((middle (a b)
-             (/ (+ a b) 2)))
-    (let* ((len (length alon)))
-      (cond ((evenp len) (two-by-two #'middle alon))
-            (t (two-by-two #'middle (cdr alon)))))))
+;; (defun mid-point (alon)
+;;   "Find the mid-points between wavelengths to correspond to the derivative points"
+;;   (labels ((middle (a b)
+;;              (/ (+ a b) 2)))
+;;     (let* ((len (length alon)))
+;;       (cond ((evenp len) (two-by-two #'middle alon))
+;;             (t (two-by-two #'middle (cdr alon)))))))
 
 (defun derivative (specta-struct)
   "Find the first derivative of successive specta-struct points i.e rate of change"
@@ -21,10 +20,11 @@
          (rise-list (cond ((evenp len) (two-by-two #'- aloa))
                      (t (two-by-two #'- (cdr aloa)))))
          (run-list (cond ((evenp len) (two-by-two #'- alon))
-                    (t (two-by-two #'- (cdr alon)))))
+                         (t (two-by-two #'- (cdr alon)))))
          (derivative (mapcar (lambda (rise run) (/ rise run)) rise-list run-list))
-         (middle (mid-point alon)))
-    (make-spectra :nm middle :abs derivative)))
+         (min-nm (cond ((evenp len) (two-by-two #'min alon))
+                       (t (two-by-two #'min (cdr alon))))))
+    (make-spectra :nm min-nm :abs derivative)))
 
 (defun second-derivative (specta-struct)
   "y2=diff(y1)./diff(x)"
@@ -48,16 +48,16 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
            (aloa (spectra-abs spectra-struct))
            (len (length alon))
            (smooth-aloa (rolling-mean aloa n))
-           (trimmed-alon (subseq alon 0 (- len n)))
-           ;(mid-point (truncate n 2))
-          ;(trimmed-alon (subseq alon mid-point (- len mid-point)))
-           )
+           ;(trimmed-alon (subseq alon 0 (- len  n)))
+           (mid-point (truncate n 2))
+           (trimmed-alon (subseq alon mid-point (- len mid-point))))
       (make-spectra :nm trimmed-alon :abs smooth-aloa))))
 
 (defun smoothed-2derivative (specta-struct n)
 "Apply a running window of length n mean to the second derivative"
   (let ((derivative (second-derivative specta-struct)))
     (smooth-struct derivative n)))
+
 
 ;; Inflection points are where the function changes concavity. Since
 ;; concave up corresponds to a positive second derivative and concave
@@ -101,23 +101,48 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
         (abs (nth min-position aloa)))
     (make-point :x nm :y abs)))
 
-(defun find-base (raw-struct derivative-struct lower-limit upper-limit)
-  (let* ((alon (spectra-nm derivative-struct))
-         (aloa (spectra-abs derivative-struct))
-         (nm-window (mapcan
-                     #'(lambda (x)
+(defun find-window (alon lower-limit upper-limit)
+             (mapcan #'(lambda (x)
                          (and (> x lower-limit)
                               (< x upper-limit)
                               (list (position x alon)))) alon))
-         (abs-values (mapcar #'abs (subseq aloa
-                                           (first nm-window)
-                                           (car (last nm-window)))))
-         (val (apply #'min abs-values))
-         ;; (val (apply #'max abs-values))
-         (base-location (+ (position val abs-values)
-                                (first nm-window)))
-         (base-nm (nth base-location alon)))
-    (find-nearest-point base-nm raw-struct)))
+
+
+;;;; Not even nearly working !!!
+(defun positive-slope (spectra first-der lower-limit upper-limit)
+  "Collect the positions in the window with a positive first derivative"
+  (let* (;; I think the first derivative should be smoothed here to
+         ;; avoid local fluctuations
+         (der-alon (spectra-nm first-der))
+         (der-aloa (spectra-abs first-der))
+         ;; Translate the nm-window to positions in the first der spectra
+         (der-window (find-window der-alon lower-limit upper-limit))
+         (pos-positions (mapcan #'(lambda (x)
+                                 (and (plusp (nth x der-aloa))
+                                      (list x))) der-window)))
+;;; Now translate the derivative positions back to nm
+    pos-positions))
+
+(positive-slope (car *spectra*) (derivative (car *spectra*)) 375 400 )
+
+(defun find-base (raw-struct derivative-struct lower-limit upper-limit)
+  "Select points with positive or negative slope and max 2nd derivative"
+  (labels ((find-window (alon lower-limit upper-limit)
+             (mapcan #'(lambda (x)
+                         (and (> x lower-limit)
+                              (< x upper-limit)
+                              (list (position x alon)))) alon)))
+    (let* ((alon (spectra-nm derivative-struct))
+           (aloa (spectra-abs derivative-struct))
+           (nm-window (find-window alon lower-limit upper-limit))
+           (values (subseq aloa
+                           (first nm-window)
+                           (car (last nm-window))))
+           (max-val (apply #'max values))
+           (base-location (+ (position max-val values)
+                             (first nm-window)))
+           (base-nm (nth base-location alon)))
+      (find-nearest-point base-nm raw-struct))))
 
 (defun find-triangle (spectra-struct &optional
                                        (first 375) (second 400) (third 420) (fourth 430)
@@ -125,6 +150,6 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
 "Document here please"
   (let* ((peak (find-peak spectra-struct second third))
         (smoothed (smoothed-2derivative spectra-struct window))
-        (base1 (find-base spectra-struct smoothed first second))
-        (base2 (find-base spectra-struct smoothed third fourth)))
+         (base1 (find-base spectra-struct smoothed first second))
+         (base2 (find-base spectra-struct smoothed third fourth)))
     (make-triangle :base1 base1 :peak peak :base2 base2)))

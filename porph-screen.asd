@@ -10,8 +10,8 @@
                :cl-who
                :hunchentoot)
   :components ((:file "package")
-               (:file "porph-screen")
                (:file "find-points")
                (:file "net-abs")
                (:file "plot")
+               (:file "porph-screen")
                (:file "web-app")))

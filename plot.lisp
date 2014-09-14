@@ -1,6 +1,8 @@
 ;;;; plot.lisp
 (in-package :porph-screen)
 
+;;(defparameter *project-pathname* "./data/")
+
 ;; (with-open-file (out #p "~/Desktop/derivative.txt" :direction :output)
 ;;   (mapcar #'(lambda (n a) (format out "~D   ~D~%" n a))
 ;;           (mid-point *alon*) (derivative *aloa*)))
@@ -8,7 +10,6 @@
 ;; (with-open-file (out #p "~/Desktop/2derivative.txt" :direction :output)
 ;;   (mapcar #'(lambda (n a) (format out "~D   ~D~%" n a))
 ;;           (mid-point (mid-point *alon*)) (derivative (derivative *aloa*))))
-
 
 (defun gp-format-data (filename spectra-struct)
   (with-open-file (out filename :direction :output
@@ -33,10 +34,13 @@
   (let ((strm (make-array 0
                          :element-type 'character
                          :adjustable t
-                         :fill-pointer 0)))
+                         :fill-pointer 0))
+        (file-path (concatenate 'string *data-repository* (spectra-id spectra-struct))))
     (format strm "set term push~C" #\Linefeed)
     (format strm "set term png~C" #\Linefeed)
-    (format strm "set output '~A.png'~C" (spectra-id spectra-struct) #\Linefeed)
+    (format strm "set output '~A.png'~C" file-path #\Linefeed)
+    (format strm  "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0~C" #\Linefeed)
+    (format strm  "set grid xtics lc rgb '#bbbbbb' lw 1 lt 0~C" #\Linefeed)
     ;;(format strm "set title 'Porphyrin Absorbance Spectra Baseline Correction'~C" #\Linefeed)
     (format strm "set xlabel 'Wavelength'~C" #\Linefeed)
     (format strm "set ylabel 'Absorbance'~C" #\Linefeed)
@@ -48,10 +52,10 @@
     (format strm "~Cset term pop~C" #\Linefeed #\Linefeed)
     (make-string-input-stream strm)))
 
-;; (sb-ext:run-program "tee" '("test")
-;;                     :input (gnuplot-stream "test" *data-set*)
-;;                     :search t
-;;                     :wait t)
+(sb-ext:run-program "tee" '("test")
+                    :input (gnuplot-stream (car *spectra*))
+                    :search t
+                    :wait t)
 
 (defun plot-data (spectra-struct)
   (sb-ext:run-program "gnuplot" nil
@@ -59,7 +63,7 @@
                       :search t
                       :wait t))
 
-;; (plot-data "test" *data-set*)
+(plot-data (car *spectra*))
 ;; (sb-ext:run-program "gnuplot"
 ;;                     '("./figures/clnuplot-example-1.data") :search t)
 

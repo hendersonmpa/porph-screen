@@ -98,7 +98,7 @@ textarea {
    ========================================================================== */
 
 #header .strapline {
-	font: 100% Georgia, "Times New Roman", Times, serif;
+	/* font: 100% Georgia, "Times New Roman", Times, serif;*/
 	color: #778899;
 	font-size: 3em;
 	background-color: transparent;
@@ -131,11 +131,30 @@ th {
     text-align: left;
 } 
 
-/* /\* Images *\/ */
-/* img { */
-/*     float: left */
-/* } */
+footer{
+	float: left;
+	margin-left: 1.5em;
+	margin-top: 0.5em;
+}
 
+footer .stamp{
+	float: left;
+        max-width: 10%;/*adjust this value to your needs*/
+        height: auto;
+	/* margin-left: 1.5em; */
+        margin-right: 0.5em;
+	margin-top: 0.5em;
+}
+
+figure {
+margin-left: 2em;
+margin-top: 1em;
+}
+
+ img
+ {
+
+ }
 
 
 

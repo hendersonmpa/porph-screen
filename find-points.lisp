@@ -2,7 +2,7 @@
 (in-package :porph-screen)
 
 (defun two-by-two (a-func a-list)
-  (loop for (a b) on a-list by #'cddr collect (funcall a-func a b)))
+  (loop for (a b) on a-list by #'cddr collect (funcall a-func b a)))
 
 ;; (defun mid-point (alon)
 ;;   "Find the mid-points between wavelengths to correspond to the derivative points"
@@ -58,7 +58,6 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
   (let ((derivative (second-derivative specta-struct)))
     (smooth-struct derivative n)))
 
-
 ;; Inflection points are where the function changes concavity. Since
 ;; concave up corresponds to a positive second derivative and concave
 ;; down corresponds to a negative second derivative, then when the
@@ -90,6 +89,7 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
     (make-point :x max-nm :y max-abs)))
 
 (defun find-nearest-point (nm spectra-struct)
+"Returns the point in spectra-struct nearest to nm"
   (let* ((alon (spectra-nm spectra-struct))
          (aloa (spectra-abs spectra-struct))
          (abs-diffs (mapcar
@@ -102,54 +102,77 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
     (make-point :x nm :y abs)))
 
 (defun find-window (alon lower-limit upper-limit)
+  "Return the positions of the window in the spectra"
              (mapcan #'(lambda (x)
                          (and (> x lower-limit)
                               (< x upper-limit)
                               (list (position x alon)))) alon))
 
+;; ;;;; not even nearly working !!!
+;; (defun target-window (a-func spectra lower-pos upper-pos)
+;;   "Return the lower and upper nm values with a positive first derivative"
+;;   (labels ((differ (a-func alon aloa)
+;;              (cond ((equal 1 (length aloa)) nil)
+;;                    (t (cond ((funcall a-func (- (second aloa) (first aloa)))
+;;                              (cons (first alon) (differ a-func (rest alon) (rest aloa))))
+;;                             (t (differ a-func (rest alon) (rest aloa))))))))
+;;     (let* ((alon (subseq (spectra-nm spectra) lower-pos upper-pos))
+;;            (aloa (subseq (spectra-abs spectra) lower-pos upper-pos))
+;;            (alon-pos (differ a-func alon aloa))
+;;            (new-lower (first alon-pos))
+;;            (new-upper (car (last alon-pos))))
+;;       (cond ((and new-lower new-upper) ; test if positive values found
+;;              (list new-lower new-upper))
+;;             (t nil)))))
 
-;;;; Not even nearly working !!!
-(defun positive-slope (spectra first-der lower-limit upper-limit)
-  "Collect the positions in the window with a positive first derivative"
-  (let* (;; I think the first derivative should be smoothed here to
-         ;; avoid local fluctuations
-         (der-alon (spectra-nm first-der))
-         (der-aloa (spectra-abs first-der))
-         ;; Translate the nm-window to positions in the first der spectra
-         (der-window (find-window der-alon lower-limit upper-limit))
-         (pos-positions (mapcan #'(lambda (x)
-                                 (and (plusp (nth x der-aloa))
-                                      (list x))) der-window)))
-;;; Now translate the derivative positions back to nm
-    pos-positions))
+;; (find-window (spectra-nm (car *spectra*)) 375 400)
+;; (target-window #'plusp (car *spectra*) 10 59)
 
-(positive-slope (car *spectra*) (derivative (car *spectra*)) 375 400 )
+;; (dolist (spectra *spectra*)
+;;   (let ((window (target-window #'plusp spectra 10 59)))
+;;     (format t "~A:~D~%" (spectra-id spectra) window)))
 
-(defun find-base (raw-struct derivative-struct lower-limit upper-limit)
+;; (defun find-base (a-func spectra derivative-spectra lower-limit upper-limit)
+;;   "Select points with positive or negative slope and max 2nd derivative"
+;;   (let* ((window (find-window (spectra-nm spectra) lower-limit upper-limit))
+;;          (limits (target-window a-func spectra
+;;                                         (first window)(car (last window))))
+;;          ;; if limits are nil use original limits
+;;          (refined-limits (cond ((null limits) (list lower-limit upper-limit))
+;;                                (t limits)))
+;;          (d-alon (spectra-nm derivative-spectra))
+;;          (d-aloa (spectra-abs derivative-spectra))
+;;          (d-limits (find-window d-alon (first refined-limits)
+;;                                   (second refined-limits)))
+;;          (d-window (subseq d-aloa
+;;                          (first d-limits)
+;;                          (car (last d-limits))))
+;;          (max-val (apply #'max d-window))
+;;          (base-location (+ (position max-val d-window)
+;;                            (first d-limits)))
+;;          (base-nm (nth base-location d-alon)))
+;;     (find-nearest-point base-nm spectra)))
+
+(defun find-base (spectra derivative-spectra lower-limit upper-limit)
   "Select points with positive or negative slope and max 2nd derivative"
-  (labels ((find-window (alon lower-limit upper-limit)
-             (mapcan #'(lambda (x)
-                         (and (> x lower-limit)
-                              (< x upper-limit)
-                              (list (position x alon)))) alon)))
-    (let* ((alon (spectra-nm derivative-struct))
-           (aloa (spectra-abs derivative-struct))
-           (nm-window (find-window alon lower-limit upper-limit))
-           (values (subseq aloa
-                           (first nm-window)
-                           (car (last nm-window))))
-           (max-val (apply #'max values))
-           (base-location (+ (position max-val values)
-                             (first nm-window)))
-           (base-nm (nth base-location alon)))
-      (find-nearest-point base-nm raw-struct))))
+  (let* ((d-alon (spectra-nm derivative-spectra))
+         (d-aloa (spectra-abs derivative-spectra))
+         (d-limits (find-window d-alon lower-limit upper-limit))
+         (d-window (subseq d-aloa
+                         (first d-limits)
+                         (car (last d-limits))))
+         (max-val (apply #'max d-window))
+         (base-location (+ (position max-val d-window)
+                           (first d-limits)))
+         (base-nm (nth base-location d-alon)))
+    (find-nearest-point base-nm spectra)))
 
-(defun find-triangle (spectra-struct &optional
-                                       (first 375) (second 400) (third 420) (fourth 430)
-                                       (window 5))
-"Document here please"
-  (let* ((peak (find-peak spectra-struct second third))
-        (smoothed (smoothed-2derivative spectra-struct window))
-         (base1 (find-base spectra-struct smoothed first second))
-         (base2 (find-base spectra-struct smoothed third fourth)))
+(defun find-triangle (spectra &optional
+                                (first 375) (second 400) (third 420) (fourth 430)
+                                (window 5))
+  "Document here please"
+  (let* ((peak (find-peak spectra second third))
+         (smoothed (smoothed-2derivative spectra window))
+         (base1 (find-base spectra smoothed first second))
+         (base2 (find-base spectra smoothed third fourth)))
     (make-triangle :base1 base1 :peak peak :base2 base2)))

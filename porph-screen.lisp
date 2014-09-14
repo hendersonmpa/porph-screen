@@ -11,6 +11,7 @@
 
 ;;; Data Managment
 (defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/2014-08-14.csv")
+(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
 
 (defun clean-up (&optional (file *test-file*))
   (let ((strm (make-array 0
@@ -50,7 +51,7 @@
                        :nm  (reverse (str-to-num nm))
                        :abs (reverse (str-to-num abs))))))
 
-o(defun parse-data (file-path)
+(defun parse-data (file-path)
   "Read in the csv and parse the numbers"
   (let* ((data-stream (clean-up file-path))
          (sample-data
@@ -63,11 +64,6 @@ o(defun parse-data (file-path)
          (spectra (list-of-spectra ids rotated-data)))
     spectra))
 
-    ;;:map-fn
-    ;; #'(lambda (line)
-
-;(defparameter *raw-data* (clean-up))
-
 
 ;; Master function to create populated spectra structs
 (defun complete-spectra (file-path)
@@ -78,4 +74,4 @@ o(defun parse-data (file-path)
       (setf (spectra-net-abs spectra) (net-abs spectra))
       (push spectra accum))))
 
-(defparameter *spectra* (complete-spectra *test-file*))
+;; (defparameter *spectra* (complete-spectra *test-file*))

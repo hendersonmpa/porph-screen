@@ -7,5 +7,5 @@
         :hunchentoot))
 
 ;; (rename-package "CL-PPCRE" "CL-PPCRE" '("RE"))
-;; (rename-package "HUNCHENTOOT" "HUNCHENTOOT" '("HUNCH"))
-;; (rename-package "CL-WHO" "CL-WHO" '("WHO"))
+; (rename-package "HUNCHENTOOT" "HUNCHENTOOT" '("HUNCH"))
+(rename-package "CL-WHO" "CL-WHO" '("WHO"))

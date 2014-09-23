@@ -5,13 +5,15 @@
 ;;; "porph-screen" goes here. Hacks and glory await!
 
 ;; Data Structures
-(defstruct spectra "Key information about the spectra" id nm abs triangle net-abs)
+(defstruct spectra "Key information about the spectra"
+           id nm abs triangle net-abs matrix vol dil)
 (defstruct point "Cartesian co-ordinates" x y )
 (defstruct triangle "The three points in an absorbance curve" base1 peak base2)
 
 ;;; Data Managment
-(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/2014-08-14.csv")
+;;(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/2014-08-14.csv")
 (defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
+(defparameter *data-pathname* nil "The local name of the raw data file")
 
 (defun clean-up (&optional (file *test-file*))
   (let ((strm (make-array 0
@@ -66,12 +68,38 @@
 
 
 ;; Master function to create populated spectra structs
-(defun complete-spectra (file-path)
+(defun build-spectra (file-path matrix)
   (let ((spectra-list (parse-data file-path))
         (accum nil))
     (dolist (spectra spectra-list (reverse accum))
       (setf (spectra-triangle spectra) (find-triangle spectra))
       (setf (spectra-net-abs spectra) (net-abs spectra))
+      (setf (spectra-matrix spectra) matrix)
       (push spectra accum))))
 
+(defun add-info (spectra vol dil)
+  (setf (spectra-vol spectra) vol)
+  (setf (spectra-dil spectra) dil))
+
 ;; (defparameter *spectra* (complete-spectra *test-file*))
+
+(defun results-csv (spectra-list &optional (data-pathname *data-pathname*))
+  (let* ((file-name (concatenate 'string
+                                 "results_" (pathname-name (pathname data-pathname)) ".csv"))
+        (out-file (merge-pathnames *data-repository* file-name )))
+    (with-open-file (out out-file :direction :output
+                         :if-exists :supersede)
+      (dolist (spectra spectra-list)
+        (let* ((id (spectra-id spectra))
+               (matrix (spectra-matrix spectra))
+               (results-list (results spectra))
+               (conc (first results-list))
+               (result (second results-list)))
+          (format out "~A,~A,~A,~A~%" id matrix conc result))))))
+;;;;; Calculation of
+;; 2 x Dmax - (D1 + D2) = corrected O.D. x 1.1097 x 1.05 (dilution
+;; factor) = nmol/mL x total volume in mL = nmol/d.  If the total volume
+;; of concentrated acid added is 100 μL then the dilution factor is
+;; 1.05. (If 200 μL concentrated acid is added the dilution factor is
+;; 1.10, 300 μL is 1.15, etc.). For random urine specimens and controls
+;; the volume is 1000 mL.

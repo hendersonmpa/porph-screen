@@ -3,12 +3,11 @@
 
 ;; Web server - Hunchentoot
 
+(defparameter *spectra* nil "This will hold a list of spectra structs")
 (setf hunchentoot:*catch-errors-p* nil) ; T for production
 (setf hunchentoot:*show-lisp-errors-p* t)
 (setf hunchentoot:*show-lisp-backtraces-p* t)
-
 (defparameter *http-port* 4242)
-
 (defvar *my-acceptor* nil)
 ;; (defun start-server (port)
 ;;   (start (make-instance 'hunchentoot:easy-acceptor :port port)))
@@ -36,7 +35,7 @@
 (setf (html-mode) :html5)
 
 (defmacro standard-page ((&key title script) &body body)
-  "All pages on the Retro Games site will use the following macro;
+  "All pages on the site will use the following macro;
    less to type and a uniform look of the pages (defines the header
    and the stylesheet).
    The macro also accepts an optional script argument. When present, the
@@ -48,6 +47,7 @@
             (:meta :charset "utf-8")
             (:title ,title)
             (:meta :name "description" :content"")
+            (:meta :http-equiv "X-UA-Compatible":content "IE=edge" )
             (:meta :name "viewport" :content "width=device-width, initial-scale=1")
             (:link :type "text/css"
                    :rel "stylesheet"
@@ -65,22 +65,24 @@
                    `(:script :type "text/javascript"
                              (who:str ,script))))
            (:body
-            (:div :id "header" ; Retro games header
+            (:header :role "banner"; Porph-screen header
                   (:img :src "/static/cary-60.jpg"
                         :alt "Cary-60"
                         :class "logo")
                   (:span :class "strapline"
-                         "Division of Biochemistry: HPLC"))
+                         "Division of Biochemistry: HPLC")
+                  (:nav :role "navigation"
+                        (:ul
+                         (:li (:a :href "/select" "Select a file for Upload")))))
             ,@body
             (:footer :role "contentinfo"
-             (:img :src "/static/lisplogo_warning2_128.png"
+             (:img :src "/static/LISP_logo.svg"
                    :alt "Lisp Alien"
                    :class "stamp")
-             (:p (:small "Created by Matthew P.A. Henderson"
-                         (:a :href "mailto:mathenderson@toh.on.ca"
-                             "mathenderson@toh.on.ca"))))))))
-
-
+             (:small (:p "Created with Common Lisp")
+                     (:p "by Matthew P.A. Henderson")
+                     (:p "Division of Biochemistry, The Ottawa Hospital")
+                     (:p "e-mail: mathenderson at toh dot on dot ca")))))))
 
 (define-easy-handler (select :uri "/select") ()
   (standard-page (:title "File Upload for Cary-60")
@@ -92,47 +94,98 @@
                  (:p "Please choose a file: "
                      (:input :type :file
                              :name "spectra-csv"))
-                 (:p (:input :type :submit :value "Submit file"))))))
+                 (:p "Please indicate sample type")
+                 (:fieldset :class "radios"
+                            (:legend "Sample Matrix:")
+                            (:p :class "row"
+                                (:input :type :radio :id "sample-urine"
+                                        :name "matrix" :value "urine")
+                                (:label :for "sample-urine" "Urine"))
+                            (:p :class "row"
+                                (:input :type :radio :id "sample-fecal"
+                                        :name "matrix" :value "fecal")
+                                (:label :for "sample-fecal" "Fecal")))
+                 (:p (:input :type :submit :value "Submit"))))))
 
 
-;; (hunchentoot:define-easy-handler (upload :uri "/upload") (uploaded-file)
-;;   (rename-file (car uploaded-file)
-;;                (concatenate 'string "/tmp/" (cadr uploaded-file)))
-;;   "SUCCESS")
+(defun urine-sample-table (spectra-list)
+  (who:with-html-output
+      (*standard-output* nil :prologue nil :indent t)
+    (dolist (spectra spectra-list)
+      (let ((id (spectra-id spectra)))
+        (cl-who:htm
+         (:li
+          (:fieldset
+           (:label :for "id" "ID")
+           (:input :type :text :name "id" :value (str id))
+           (:label :for "vol" "Sample Volume (mL)")
+           (:input :type :text :name (format nil "~A-vol" id )
+                   :value 1000)
+           (:label :for "dil" "Acid Volume (mL)")
+           (:input :type :text :name (format nil "~A-dil" id )
+                   :value 1.05))))))))
 
-(define-easy-handler (upload :uri "/upload") (spectra-csv)
-  (let ((file-name (concatenate 'string *data-repository* (cadr spectra-csv))))
-    (rename-file (car spectra-csv) file-name)
-    (setf *spectra* (complete-spectra *test-file*))
-    (standard-page (:title "Upload Complete")
-      (:h1 "Success!")
-      (:p  "The file has been uploaded to the server")
-      (:p "File location: " (str file-name) )
-      (:h2 "Review absorbance spectra and baseline correction "
-          (:a :href "plots" "here")))))
+(defun fecal-sample-table (spectra-list)
+  (who:with-html-output
+      (*standard-output* nil :prologue nil :indent t)
+    (dolist (spectra spectra-list)
+      (let ((id (spectra-id spectra)))
+        (cl-who:htm
+         (:li
+          (:fieldset
+           (:label :for "id" "ID")
+           (:input :type :text :name "id" :value (str id))
+           (:label :for "vol" "Sample Weight (mg)")
+           (:input :type :text :name (format nil "~A-vol" id )
+                   :value 25)
+           (:label :for "dil" "Acid Volume (mL)")
+           (:input :type :text :name (format nil "~A-dil" id )
+                   :value 4.5))))))))
 
-;; (hunchentoot:define-easy-handler (say-yo :uri "/yo") (name)
-;;   (setf (hunchentoot:content-type*) "text/plain")
-;;   (format nil "Hey~@[ ~A~]!" name))
+(define-easy-handler (upload :uri "/upload") (spectra-csv matrix)
+  (cond ((null spectra-csv) (redirect "/select"))
+        (t (let ((file-name (concatenate 'string *data-repository* (cadr spectra-csv))))
+           (rename-file (car spectra-csv) file-name)
+           (setf *spectra* (build-spectra file-name matrix))
+           (setf *data-pathname* (pathname file-name))
+           (standard-page (:title "Upload Complete")
+             (:h1 "Success!")
+             (:p "The file has been uploaded to the server")
+             (:p "File location: " (str file-name) )
+             (:p "Sample type: " (str matrix))
+             (:h1 "Please indicate sample volume and the volume of acid added")
+             (:form :action "/info" :method "post" :id "info-list"
+                    (:ol
+                     (cond ((string= "urine" matrix)(urine-sample-table *spectra*))
+                           ((string= "fecal" matrix)(fecal-sample-table *spectra*))
+                           (t (cl-who:htm (:p "please enter a sample type")))))
+                    (:input :type :submit :value "Submit")))))))
 
-;; (defvar *test-directory* #p"/User/matthew/lisp/site/porph-screen/data/")
-;; (defvar *test-files* nil)
+(hunchentoot:define-easy-handler (info :uri "/info") ()
+  (let ((alop (hunchentoot:post-parameters*)))
+    (loop for (id vol dil) on alop by #'cdddr
+       do (loop for spectra in *spectra*
+             if (string= (spectra-id spectra) (cdr id))
+             do (add-info spectra (parse-number (cdr vol))
+                          (parse-number (cdr dil))))))
+  (plot-data *spectra*)
+  (redirect "/plots"))
 
 (hunchentoot:define-easy-handler (plots :uri "/plots") ()
   (standard-page (:title "Absorbance Spectra")
     (:h1 "Porphyrin Screen Absorbance Spectra")
-    (:ul
+    (:ol
      (dolist (spectra *spectra*)
        (let* ((id (spectra-id spectra))
-              (triangle (spectra-triangle spectra))
-              (base1 (triangle-base1 triangle))
-              (peak (triangle-peak triangle))
-              (base2 (triangle-base2 triangle)))
-         (plot-data spectra)
+             (triangle (spectra-triangle spectra))
+             (base1 (triangle-base1 triangle))
+             (peak (triangle-peak triangle))
+             (base2 (triangle-base2 triangle))
+             (plot-name (concatenate 'string  "/data/" id ".png")))
          (cl-who:htm
           (:li
            (:figure :id (str id)
-                (:table (:tr
+                    (:table (:tr
                          (:th "Sample ID" )
                          (:th "Base 1 (nm)")
                          (:th "Peak (nm)")
@@ -148,45 +201,55 @@
                 (:form :action "/update" :method "post" :id "user-input"
                        (:label :for "id" "ID")
                        (:input :type :text :name "id" :value (str id))
-                       (:label :for "base_1" "Base 1")
-                       (:input :type :text :name "base1-nm")
-                       (:label :for "peak" "Peak")
-                       (:input :type :text :name "peak-nm")
-                       (:label :for "base_2" "Base 2")
-                       (:input :type :text  :name "base2-nm")
-                       (:input :type :submit :value "Submit"))
-                (:img :src  (concatenate 'string  "/data/" id ".png")
-                      :alt "plot here")))))))))
+                       (:label :for "base1-nm" "Base 1")
+                       (:input :type :text :name "base1-nm" :value (str (point-x base1)))
+                       (:label :for "peak-nm" "Peak")
+                       (:input :type :text :name "peak-nm" :value (str (point-x peak)))
+                       (:label :for "base2-nm" "Base 2")
+                       (:input :type :text  :name "base2-nm" :value (str (point-x base2)))
+                       (:input :type :submit :value "Submit"))))
+                    (:img :src plot-name :alt "plot goes here")))))
+    (:a :href "/report" "Prepare Final Report")))
 
 (hunchentoot:define-easy-handler (update :uri "/update") (id base1-nm peak-nm base2-nm)
+  ;; TODO include error handling in case all fields are not completed
   (let* ((spectra (dolist (spectra *spectra*)
                     (when (equalp id (spectra-id spectra)) (return spectra))))
-         (base1 (find-nearest-point (parse-integer base1-nm) spectra))
-         (peak (find-nearest-point (parse-integer peak-nm) spectra))
-         (base2 (find-nearest-point (parse-integer base2-nm) spectra))
+         (base1 (find-nearest-point (parse-integer base1-nm :junk-allowed t) spectra))
+         (peak (find-nearest-point (parse-integer peak-nm :junk-allowed t) spectra))
+         (base2 (find-nearest-point (parse-integer base2-nm :junk-allowed t) spectra))
         (triangle (make-triangle :base1 base1 :peak peak :base2 base2)))
     (setf (spectra-triangle spectra) triangle)
     (setf (spectra-net-abs spectra) (net-abs spectra))
-    (plot-data spectra)
+    (single-plot spectra)
     (redirect (concatenate 'string "/plots#" id))))
-    ;; (standard-page (:title "Absorbance Spectra")
-    ;;   (:h1 "Porphyrin Screen Absorbance Spectra")
-    ;;   (cl-who:htm
-    ;;    (:figure
-    ;;     (:table (:tr
-    ;;              (:th "Sample ID" )
-    ;;              (:th "Base 1 (nm)")
-    ;;              (:th "Peak (nm)")
-    ;;              (:th "Base 2 (nm)")
-    ;;              (:th "Net Absorbance"))
-    ;;             (:tr
-    ;;              (:td (str (spectra-id spectra)))
-    ;;              (:td (str (point-x base1)))
-    ;;              (:td (str (point-x peak)))
-    ;;              (:td (str (point-x base2)))2
-    ;;              (:td (str (spectra-net-abs spectra)))))
-    ;;     (:img :src  (concatenate 'string  "/data/" id ".png")
-    ;;           :alt "plot here"))))))
+
+(hunchentoot:define-easy-handler (report :uri "/report") ()
+  (let ((time (multiple-value-bind (sec min hour date mon year)
+                  (get-decoded-time)
+                (declare (ignore sec))
+                (format nil "~d-~2,'0d-~2,'0d ~2,'0d:~2,'0d" year mon date hour min))))
+    (standard-page (:title "Porphyrin Screen")
+      (:h1 (format t "Porphyrin Screen Results Report ~A" time))
+      (:ol
+       (dolist (spectra *spectra*)
+         (let* ((id (spectra-id spectra))
+                (matrix (spectra-matrix spectra))
+                (result (results spectra))
+                (plot-name  (concatenate 'string  "/data/" id ".png")))
+           (cl-who:htm
+            (:li
+             (:table (:tr
+                      (:th "Sample ID" )
+                      (:th "Matrix" )
+                      (:th "nmol/L")
+                      (:th "Result"))
+                     (:tr
+                      (:td (str id))
+                      (:td (str matrix))
+                      (:td (str (first result)))
+                      (:td (str (second result))))))
+            (:img :src plot-name :alt "plot here"))))))))
 
 
 

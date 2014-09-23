@@ -60,3 +60,41 @@
          (base2 (triangle-base2 triangle))
          (baseline (interpolate peak base1 base2)))
     (delta #'point-y baseline peak)))
+
+(defparameter *urine-constant* 1.1097)
+(defparameter *fecal-constant* 14.85)
+
+;; Fecal: Net-Abs * 14.85/Weight of sample = “X” nmol/g wet feces
+;; Urine: Net-Abs * 1.1097 * dil * vol = nmol/d
+(defun concentration (spectra-struct &optional (urine-constant *urine-constant*)
+                                       (fecal-constant *fecal-constant*))
+  (let* ((matrix (spectra-matrix spectra-struct))
+         (vol (spectra-vol spectra-struct))
+         (dil (spectra-dil spectra-struct))
+         (net-abs (spectra-net-abs spectra-struct)))
+    (cond ((string= "urine" matrix)
+           (* net-abs urine-constant dil vol))
+          ((string= "fecal" matrix)
+           (/ (* net-abs fecal-constant) (/ vol 1000)))
+          (t (print "No matrix provided")))))
+
+;; Normal if concentration <110 nmol/d for 24 h collections
+;; or <110 nmol/L for random specimens.
+;; Borderline if concentration is between 110 and 200 nmol/d or nmol/L.
+;; Append the footnote POR 3 which expands to “Quantitation to follow”.  Test request a
+;; quantitative urine porphyrin.
+;; Elevated if concentration is >200 nmol/d or nmol/L.  Append the footnote POR 3.
+;; Test request a quantitative urine porphyrin.
+
+(defun results (spectra-struct)
+  (let ((matrix (spectra-matrix spectra-struct))
+        (conc (concentration spectra-struct)))
+    (cond ((string= "urine" matrix)
+           (cond ((and (>= conc -10) (< conc 110))(list conc "Normal"))
+                 ((and (>= conc 110) (<= conc 200))(list conc "Borderline"))
+                 ((> conc 200)(list conc "Elevated"))
+                 (t (list conc "Interference?"))))
+          ((string= "fecal" matrix)
+           (cond ((and (>= conc -10) (<= conc 35))(list conc "Normal"))
+                 ((> conc 35) (list conc "Elevated"))
+                 (t (list conc "Interference?")))))))

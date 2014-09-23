@@ -37,9 +37,9 @@
                          :fill-pointer 0))
         (file-path (concatenate 'string *data-repository* (spectra-id spectra-struct))))
     (format strm "set term push~C" #\Linefeed)
-    (format strm "set term png~C" #\Linefeed)
+    (format strm "set term png truecolor ~C" #\Linefeed)
     (format strm "set output '~A.png'~C" file-path #\Linefeed)
-    (format strm  "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0~C" #\Linefeed)
+    (format strm "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0~C" #\Linefeed)
     (format strm  "set grid xtics lc rgb '#bbbbbb' lw 1 lt 0~C" #\Linefeed)
     ;;(format strm "set title 'Porphyrin Absorbance Spectra Baseline Correction'~C" #\Linefeed)
     (format strm "set xlabel 'Wavelength'~C" #\Linefeed)
@@ -52,18 +52,31 @@
     (format strm "~Cset term pop~C" #\Linefeed #\Linefeed)
     (make-string-input-stream strm)))
 
-(sb-ext:run-program "tee" '("test")
-                    :input (gnuplot-stream (car *spectra*))
-                    :search t
-                    :wait t)
+;; (sb-ext:run-program "tee" '("test")
+;;                     :input (gnuplot-stream (car *spectra*))
+;;                     :search t
+;;                     :wait t)
 
-(defun plot-data (spectra-struct)
+(defun plot-data (spectra-list)
+  (dolist (spectra spectra-list)
+    (sb-ext:run-program "gnuplot" nil
+                        :input (gnuplot-stream spectra)
+                        :search t
+                        :wait t)))
+
+(defun single-plot (spectra)
   (sb-ext:run-program "gnuplot" nil
-                      :input (gnuplot-stream spectra-struct)
+                      :input (gnuplot-stream spectra)
                       :search t
                       :wait t))
 
-(plot-data (car *spectra*))
+;; (dolist (spectra *spectra*)
+;;   (sb-ext:run-program "gnuplot" nil
+;;                       :input (gnuplot-stream spectra)
+;;                       :search t
+;;                       :wait nil))
+;; (plot-data (car *spectra*))
+
 ;; (sb-ext:run-program "gnuplot"
 ;;                     '("./figures/clnuplot-example-1.data") :search t)
 

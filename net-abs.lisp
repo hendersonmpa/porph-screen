@@ -73,9 +73,9 @@
          (dil (spectra-dil spectra-struct))
          (net-abs (spectra-net-abs spectra-struct)))
     (cond ((string= "urine" matrix)
-           (* net-abs urine-constant dil vol))
+           (round (* net-abs urine-constant dil vol)))
           ((string= "fecal" matrix)
-           (/ (* net-abs fecal-constant) (/ vol 1000)))
+           (round (/ (* net-abs fecal-constant) (/ vol 1000))))
           (t (print "No matrix provided")))))
 
 ;; Normal if concentration <110 nmol/d for 24 h collections

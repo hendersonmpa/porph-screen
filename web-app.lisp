@@ -66,12 +66,12 @@
                              (who:str ,script))))
            (:body
             (:header :role "banner"; Porph-screen header
-                  (:img :src "/static/cary-60.jpg"
-                        :alt "Cary-60"
-                        :class "logo")
-                  (:span :class "strapline"
-                         "Division of Biochemistry: HPLC")
-                  (:nav :role "navigation"
+                     (:img :src "/static/cary-60.jpg"
+                           :alt "Cary-60"
+                           :class "logo")
+                     (:span :class "strapline"
+                            "Chromatography and Spectroscopy")
+                     (:nav :role "navigation"
                         (:ul
                          (:li (:a :href "/select" "Select a file for Upload")))))
             ,@body
@@ -86,61 +86,60 @@
 
 (define-easy-handler (select :uri "/select") ()
   (standard-page (:title "File Upload for Cary-60")
-    (:h1 "File Upload for Porphyrin Screen Data")
-    (:div :id "chart" ; Used for CSS styling of the links.
-          (:p "Select the .csv file from the run data")
-          (:form :method :post :enctype "multipart/form-data"
-                 :action "upload" ;; What happens when you submit
-                 (:p "Please choose a file: "
-                     (:input :type :file
-                             :name "spectra-csv"))
-                 (:p "Please indicate sample type")
-                 (:fieldset :class "radios"
-                            (:legend "Sample Matrix:")
-                            (:p :class "row"
-                                (:input :type :radio :id "sample-urine"
-                                        :name "matrix" :value "urine")
-                                (:label :for "sample-urine" "Urine"))
-                            (:p :class "row"
-                                (:input :type :radio :id "sample-fecal"
-                                        :name "matrix" :value "fecal")
-                                (:label :for "sample-fecal" "Fecal")))
-                 (:p (:input :type :submit :value "Submit"))))))
+    (:h3 "File Upload for Porphyrin Screen Data")
+    (:p "Select the .csv file for this analysis")
+    (:form :method :post :enctype "multipart/form-data"
+           :action "upload" ;; What happens when you submit
+           (:p "Select the file: "
+               (:input :type :file
+                       :name "spectra-csv" :class "btn"))
+           (:p "Indicate sample type")
+           (:fieldset :class "radios"
+                      (:legend "Sample Matrix:")
+                      (:p :class "row"
+                          (:input :type :radio :id "sample-urine"
+                                  :name "matrix" :value "urine")
+                          (:label :for "sample-urine" "Urine"))
+                      (:p :class "row"
+                          (:input :type :radio :id "sample-fecal"
+                                  :name "matrix" :value "fecal")
+                          (:label :for "sample-fecal" "Fecal")))
+           (:p (:input :type :submit :value "Submit" :class "btn")))))
 
 
 (defun urine-sample-table (spectra-list)
   (who:with-html-output
       (*standard-output* nil :prologue nil :indent t)
-    (dolist (spectra spectra-list)
-      (let ((id (spectra-id spectra)))
-        (cl-who:htm
-         (:li
-          (:fieldset
-           (:label :for "id" "ID")
-           (:input :type :text :name "id" :value (str id))
-           (:label :for "vol" "Sample Volume (mL)")
-           (:input :type :text :name (format nil "~A-vol" id )
-                   :value 1000)
-           (:label :for "dil" "Acid Volume (mL)")
-           (:input :type :text :name (format nil "~A-dil" id )
-                   :value 1.05))))))))
+    (:table (:tr
+             (:th "ID")
+             (:th "Volume (mL)")
+             (:th "Acid (mL)"))
+            (dolist (spectra spectra-list)
+              (let ((id (spectra-id spectra)))
+                (cl-who:htm
+                 (:tr
+                  (:td (:input :type "text":name "id" :value (str id) :class "txt"))
+                  (:td (:input :type "text":name (format nil "~A-vol" id )
+                           :value 1000 :class "txt"))
+                  (:td (:input :type "text" :name (format nil "~A-dil" id )
+                           :value 1.05 :class "txt")))))))))
 
 (defun fecal-sample-table (spectra-list)
   (who:with-html-output
       (*standard-output* nil :prologue nil :indent t)
-    (dolist (spectra spectra-list)
-      (let ((id (spectra-id spectra)))
-        (cl-who:htm
-         (:li
-          (:fieldset
-           (:label :for "id" "ID")
-           (:input :type :text :name "id" :value (str id))
-           (:label :for "vol" "Sample Weight (mg)")
-           (:input :type :text :name (format nil "~A-vol" id )
-                   :value 25)
-           (:label :for "dil" "Acid Volume (mL)")
-           (:input :type :text :name (format nil "~A-dil" id )
-                   :value 4.5))))))))
+    (:table (:tr
+             (:th "ID" )
+             (:th "Weight (mg)")
+             (:th "Acid (mL)"))
+            (dolist (spectra spectra-list)
+              (let ((id (spectra-id spectra)))
+                (cl-who:htm
+                 (:tr
+                  (:td (:input :type "text" :name "id" :value (str id) :class "txt"))
+                  (:td (:input :type "text" :name (format nil "~A-vol" id )
+                           :value 25 :class "txt"))
+                  (:td (:input :type "text" :name (format nil "~A-dil" id )
+                               :value 4.5 :class "txt")))))))))
 
 (define-easy-handler (upload :uri "/upload") (spectra-csv matrix)
   (cond ((null spectra-csv) (redirect "/select"))
@@ -149,17 +148,16 @@
            (setf *spectra* (build-spectra file-name matrix))
            (setf *data-pathname* (pathname file-name))
            (standard-page (:title "Upload Complete")
-             (:h1 "Success!")
-             (:p "The file has been uploaded to the server")
+             (:h3 "The file has been uploaded to the server")
              (:p "File location: " (str file-name) )
-             (:p "Sample type: " (str matrix))
-             (:h1 "Please indicate sample volume and the volume of acid added")
+             (:p "Sample type: " (string-capitalize (str matrix)))
+             (:h3 "Please indicate sample volume and the volume of acid added")
              (:form :action "/info" :method "post" :id "info-list"
                     (:ol
                      (cond ((string= "urine" matrix)(urine-sample-table *spectra*))
                            ((string= "fecal" matrix)(fecal-sample-table *spectra*))
                            (t (cl-who:htm (:p "please enter a sample type")))))
-                    (:input :type :submit :value "Submit")))))))
+                    (:input :type :submit :value "Submit" :class "btn")))))))
 
 (hunchentoot:define-easy-handler (info :uri "/info") ()
   (let ((alop (hunchentoot:post-parameters*)))
@@ -173,7 +171,7 @@
 
 (hunchentoot:define-easy-handler (plots :uri "/plots") ()
   (standard-page (:title "Absorbance Spectra")
-    (:h1 "Porphyrin Screen Absorbance Spectra")
+    (:h2 "Porphyrin Screen Absorbance Spectra Analysis")
     (:ol
      (dolist (spectra *spectra*)
        (let* ((id (spectra-id spectra))
@@ -184,32 +182,40 @@
              (plot-name (concatenate 'string  "/data/" id ".png")))
          (cl-who:htm
           (:li
-           (:figure :id (str id)
-                    (:table (:tr
-                         (:th "Sample ID" )
-                         (:th "Base 1 (nm)")
-                         (:th "Peak (nm)")
-                         (:th "Base 2 (nm)")
-                         (:th "Net Absorbance"))
-                        (:tr
-                         (:td (str id))
-                         (:td (str (point-x base1)))
-                         (:td (str (point-x peak)))
-                         (:td (str (point-x base2)))
-                         (:td (str (spectra-net-abs spectra)))))
-                (:p "Manually enter wavelength (nm) for points if required")
-                (:form :action "/update" :method "post" :id "user-input"
-                       (:label :for "id" "ID")
-                       (:input :type :text :name "id" :value (str id))
-                       (:label :for "base1-nm" "Base 1")
-                       (:input :type :text :name "base1-nm" :value (str (point-x base1)))
-                       (:label :for "peak-nm" "Peak")
-                       (:input :type :text :name "peak-nm" :value (str (point-x peak)))
-                       (:label :for "base2-nm" "Base 2")
-                       (:input :type :text  :name "base2-nm" :value (str (point-x base2)))
-                       (:input :type :submit :value "Submit"))))
-                    (:img :src plot-name :alt "plot goes here")))))
-    (:a :href "/report" "Prepare Final Report")))
+           (:section
+            :id id
+                     (:h3 (format t "Absorbance Spectra: ~A" id))
+                    (:form :action "/update" :method "post" :id "user-input"
+                           (:table (:tr
+                                    (:th "Sample ID" )
+                                    (:th "Base 1 (nm)")
+                                    (:th "Peak (nm)")
+                                    (:th "Base 2 (nm)")
+                                    (:th "Net Absorbance"))
+                                   (:tr
+                                    (:td (str id))
+                                    (:td (str (point-x base1)))
+                                    (:td (str (point-x peak)))
+                                    (:td (str (point-x base2)))
+                                    (:td (str (spectra-net-abs spectra))))
+                                   (:tr
+                                    (:td
+                                     (:input :type :text :name "id"
+                                             :value (str id) :class "txt"))
+                                    (:td
+                                     (:input :type :text :name "base1-nm"
+                                             :value (str (point-x base1)) :class "txt"))
+                                    (:td
+                                     (:input :type :text :name "peak-nm"
+                                             :value (str (point-x peak)) :class "txt"))
+                                    (:td
+                                     (:input :type :text :name "base2-nm"
+                                             :value (str (point-x base2)) :class "txt"))
+                                    (:td
+                                     (:input :type :submit :value "Re-calculate" :class "btn")))))
+                    (:img :src plot-name :alt "plot goes here")))))))
+    (:form :action "/report"
+           (:input :type :submit :value "Create Report" :class "btn"))))
 
 (hunchentoot:define-easy-handler (update :uri "/update") (id base1-nm peak-nm base2-nm)
   ;; TODO include error handling in case all fields are not completed
@@ -230,29 +236,28 @@
                 (declare (ignore sec))
                 (format nil "~d-~2,'0d-~2,'0d ~2,'0d:~2,'0d" year mon date hour min))))
     (standard-page (:title "Porphyrin Screen")
-      (:h1 (format t "Porphyrin Screen Results Report ~A" time))
+      (:h2 (format t "Porphyrin Screen Results Report ~A" time))
       (:ol
        (dolist (spectra *spectra*)
          (let* ((id (spectra-id spectra))
-                (matrix (spectra-matrix spectra))
+                (matrix (string-capitalize (spectra-matrix spectra)))
                 (result (results spectra))
                 (plot-name  (concatenate 'string  "/data/" id ".png")))
            (cl-who:htm
             (:li
-             (:table (:tr
-                      (:th "Sample ID" )
-                      (:th "Matrix" )
-                      (:th "nmol/L")
-                      (:th "Result"))
-                     (:tr
-                      (:td (str id))
-                      (:td (str matrix))
-                      (:td (str (first result)))
-                      (:td (str (second result))))))
-            (:img :src plot-name :alt "plot here"))))))))
-
-
-
+             (:section
+              (:h3 (format t "~A Porphyrin Screen Sample: ~A" matrix id))
+              (:table (:tr
+                       (:th "Sample ID" )
+                       (:th "Matrix" )
+                       (:th "nmol/L")
+                       (:th "Result"))
+                      (:tr
+                       (:td (str id))
+                       (:td (str matrix))
+                       (:td (str (first result)))
+                       (:td (str (second result)))))
+              (:img :src plot-name :alt "plot here"))))))))))
 
 ;;(publish-static-content)
 ;;(start-server 8085)

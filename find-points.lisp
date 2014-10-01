@@ -168,13 +168,12 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
     (make-point :x max-nm :y max-abs)))
 
 (defun find-triangle (spectra &optional
-                                (first 375) (second 403) (third 406) (fourth 420)
-                                (window 5))
+                                (first 375)(second 403)(third 406)(fourth 440))
   "Document here please"
   (let* ((peak (find-peak spectra second third))
-         (smoothed (smoothed-2derivative spectra window))
-         (base1 (find-base1 #'plusp spectra smoothed first second))
-         (base2 (find-base2 spectra smoothed third fourth)))
+         (2nd-der (second-derivative spectra))
+         (base1 (find-base1 #'plusp spectra 2nd-der first second))
+         (base2 (find-base2 spectra 2nd-der third fourth)))
     (make-triangle :base1 base1 :peak peak :base2 base2)))
 
 ;(find-triangle (third *spectra*))

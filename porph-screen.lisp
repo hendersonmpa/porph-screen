@@ -10,34 +10,51 @@
 (defstruct point "Cartesian co-ordinates" x y )
 (defstruct triangle "The three points in an absorbance curve" base1 peak base2)
 
-;;; Data Managment
+;;; Data Management
 ;;(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/2014-08-14.csv")
-(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
+(defparameter *data-repository* "/home/mpah/lisp/site/porph-screen/data/")
 (defparameter *data-pathname* nil "The local name of the raw data file")
 
-(defun clean-up (&optional (file *test-file*))
+(defun clean-up (file-path)
   (let ((strm (make-array 0
                          :element-type 'character
                          :adjustable t
                          :fill-pointer 0)))
-    (with-open-file (in file :direction :input)
-      (loop for line = (read-line in nil 'foo)
-         until (eq line 'foo)
+    (with-open-file (in file-path :direction :input)
+      (loop for line = (read-line in nil 'eof)
+         until (eq line 'eof)
          do (let ((new-line (string-trim '(#\, #\Space #\Tab #\Newline #\Return) line)))
               (format strm "~A~%" new-line))))
     (make-string-input-stream strm)))
 
-(defun get-sample-names (sample-data)
-  (let ((id-line (car sample-data))
-        (ids nil))
+(defun slurp-stream (stream)
+  (let ((seq (make-string (file-length stream))))
+    (read-sequence seq stream)
+    seq))
+
+;; (defparameter *text-string*
+;;   (with-open-file (in "/home/mpah/lisp/site/porph-screen/data/UPORS_2014-09-15.csv"
+;;                       :direction :input)
+;;    (slurp-stream in)))
+
+(defun remove-empty-lines (text-string)
+  (cl-ppcre:regex-replace-all "^$" text-string ""))
+
+(defun normalize-line-endings (text-string)
+  "replaces all sorts of weird line endings with the standard cl line ending #\newline"
+  (cl-ppcre:regex-replace-all "(\\r|\\n)+" text-string (string #\newline)))
+
+(defun clean-up (file-path)
+  (with-open-file (in file-path :direction :input)
+    (let* ((raw-text (slurp-stream in))
+           (line-endings (normalize-line-endings raw-text))
+           (removed-empty (remove-empty-lines line-endings)))
+      removed-empty)))
+
+(defun get-sample-names (id-line)
+  (let ((ids nil))
     (dolist (entry id-line (reverse ids))
       (cond ((not (equalp entry ""))(push entry ids))
-            (t nil)))))
-
-(defun remove-empty (lol)
-  (let ((accum nil))
-    (dolist (row lol (reverse accum))
-      (cond ((not (equalp row '(""))) (push row accum))
             (t nil)))))
 
 (defun rotate (list-of-lists)
@@ -55,20 +72,30 @@
 
 (defun parse-data (file-path)
   "Read in the csv and parse the numbers"
-  (let* ((data-stream (clean-up file-path))
-         (sample-data
-          (let ((accum nil))
-            (dotimes (line 2 (reverse accum))
-              (push (car (cl-csv:read-csv (read-line data-stream nil 'eol))) accum))))
-         (ids (get-sample-names sample-data))
-         (data-set (remove-empty (cl-csv:read-csv data-stream)))
-         (rotated-data (rotate data-set))
+  (let* ((data (clean-up2 file-path))
+         (data-set (cl-csv:read-csv data))
+         (id-line (car data-set))
+         (ids (get-sample-names id-line))
+         (rotated-data (rotate (cddr data-set)))
          (spectra (list-of-spectra ids rotated-data)))
     spectra))
+;;(parse-data2 "/home/mpah/lisp/site/porph-screen/data/UPORS_2014-09-15.csv")
 
+;; (defun parse-data (file-path)
+;;   "Read in the csv and return a list of spectra structs"
+;;   (let* ((data (clean-up file-path))
+;;          (sample-data
+;;           (let ((accum nil))
+;;             (dotimes (line 2 (reverse accum))
+;;               (push (car (cl-csv:read-csv (read-line data-stream nil 'eol))) accum))))
+;;          (ids (get-sample-names sample-data))
+;;          (data-set (remove-empty (cl-csv:read-csv data-stream)))
+;;          (rotated-data (rotate data-set))
+;;          (spectra (list-of-spectra ids rotated-data)))
+;;     spectra))
 
-;; Master function to create populated spectra structs
 (defun build-spectra (file-path matrix)
+  "Master function to create a list of spectra structs: from csv file and sample matrix choice"
   (let ((spectra-list (parse-data file-path))
         (accum nil))
     (dolist (spectra spectra-list (reverse accum))
@@ -82,8 +109,8 @@
   (setf (spectra-dil spectra) dil))
 
 ;; (defparameter *spectra* (complete-spectra *test-file*))
-
 (defun results-csv (spectra-list &optional (data-pathname *data-pathname*))
+  "Create a csv file of the results"
   (let* ((file-name (concatenate 'string
                                  "results_" (pathname-name (pathname data-pathname)) ".csv"))
         (out-file (merge-pathnames *data-repository* file-name )))

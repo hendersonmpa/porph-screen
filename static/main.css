@@ -98,28 +98,39 @@ textarea {
    ========================================================================== */
 
 header .strapline {
-	/* font: 100% Georgia, "Times New Roman", Times, serif;*/
+	font: 100% Georgia, "Times New Roman", Times, serif;
 	color: #778899;
-	font-size: 3em;
+	font-size: 2.5em;
 	background-color: transparent;
-	float: left;
+	/* float: left; */
 	margin-left: 2em;
 	margin-top: 0.7em;
+        border-bottom: 2px solid 
 }
 
-/* #header .logo { */
-/* 	float: left; */
-/* 	margin-left: 1.5em; */
-/* 	margin-top: 0.5em; */
-/* } */
+header .logo {
+    max-width: 15%;/*adjust this value to your needs*/
+	/* float: left; */
+	/* margin-left: 1.5em; */
+	/* margin-top: 0.5em; */
+}
 
-figure {
-margin-left: 2em;
-margin-top: 1em;
+nav {
+    float: right;
+}
+
+body {
+    margin: 10em;
+}
+h2, h3 {
+    color: #778899;
+}
+
+section {
+    border-bottom: 5px solid #778899;
 }
 
 /* Radios */
-
 .radios {
     background-color: transparent;
     position: relative;
@@ -145,41 +156,54 @@ margin-top: 1em;
     vertical-align: middle;
     width: auto;
 }
-/*
-Tables
-*/
+
+/* Make the forms more attractive. */
+form {
+	/* border: 1px dotted #aaaaaa; */
+	padding: 3px 6px 3px 6px;
+}
+input.txt{
+	background-color: #C2EBFF; /* #C2D1E0 #ADD8E6; */
+	/* border: 1px inset #00008B; */
+	width: 150px;
+}
+input.btn {
+	border: 1px outset #00008B;
+	padding: 2px 4px 2px 4px;
+}
+
+
+/*Tables*/
  table, th, td {
     border: 1px solid black;
     border-collapse: collapse;
     vertical-align: middle;
 }
 th,td {
-    padding: 15px;
+    padding: 5px;
 }
 
 th {
     color: white;
-    background-color: grey;
+    background-color: #778899;
     text-align: left;
 } 
 
+/* Footer */
 footer{
-	float: left;
+	float: right;
 	margin-left: 1.5em;
 	margin-top: 0.5em;
 }
 
 footer .stamp{
-	float: left;
-        max-width: 15%;/*adjust this value to your needs*/
+	float: right;
+        max-width: 25%;/*adjust this value to your needs*/
         height: auto;
 	/* margin-left: 1.5em; */
         margin-right: 0.5em;
 	margin-top: 1em;
 }
-
-
-
 
 
 /* ==========================================================================

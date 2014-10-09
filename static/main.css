@@ -206,6 +206,18 @@ footer .stamp{
 }
 
 
+@media print {
+
+nav, header .strapline, header .logo,h3, img, footer .stamp {
+    display: none;
+}
+h2 {font-size: 14pt;}
+th,td {font-size: 10pt;}
+footer { font-size: 5pt;}
+
+}
+
+
 /* ==========================================================================
    helper classes
    ========================================================================== */

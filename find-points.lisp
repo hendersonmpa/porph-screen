@@ -74,16 +74,16 @@ struct-nm: trimmed on each end to mimic a middle position in the window "
   (pairlis (first rotated-data) (second rotated-data)))
 
 (defun find-nearest-point (nm spectra-struct)
-"Returns the point in spectra-struct nearest to nm"
+  "Returns the point in spectra-struct nearest to nm"
   (let* ((alon (spectra-nm spectra-struct))
          (aloa (spectra-abs spectra-struct))
          (abs-diffs (mapcar
-                #'(lambda (x)
-                    (abs (- x nm))) alon))
+                     #'(lambda (x)
+                         (abs (- x nm))) alon))
          (min-diff (apply #'min abs-diffs))
-        (min-position (position min-diff abs-diffs))
-        (nm (nth min-position alon))
-        (abs (nth min-position aloa)))
+         (min-position (position min-diff abs-diffs))
+         (nm (nth min-position alon))
+         (abs (nth min-position aloa)))
     (make-point :x nm :y abs)))
 
 (defun find-window (alon lower-limit upper-limit)

@@ -235,6 +235,7 @@
                   (get-decoded-time)
                 (declare (ignore sec))
                 (format nil "~d-~2,'0d-~2,'0d ~2,'0d:~2,'0d" year mon date hour min))))
+    (results-csv *spectra*)
     (standard-page (:title "Porphyrin Screen")
       (:h2 (format t "Porphyrin Screen Results Report ~A" time))
       (:ol

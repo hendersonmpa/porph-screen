@@ -2,6 +2,16 @@
 
 (in-package :porph-screen)
 
+;;TODO Clean-up the graphs after the report generation
+;;TODO Add declarations where needed
+;;TODO Better baseline algorithm - two points on same side?
+;;STARTED Create a printable report
+;;TODO Connect to mysql a database
+;;TODO Replace structures with objects and methods
+;;   - Change the fecal sample table as part of this change
+;;TODO Use vectors for the abs and nm data
+;;TODO Improve the base-line detection algorithm
+
 ;;; "porph-screen" goes here. Hacks and glory await!
 
 ;; Data Structures
@@ -72,7 +82,7 @@
 
 (defun parse-data (file-path)
   "Read in the csv and parse the numbers"
-  (let* ((data (clean-up2 file-path))
+  (let* ((data (clean-up file-path))
          (data-set (cl-csv:read-csv data))
          (id-line (car data-set))
          (ids (get-sample-names id-line))
@@ -80,19 +90,6 @@
          (spectra (list-of-spectra ids rotated-data)))
     spectra))
 ;;(parse-data2 "/home/mpah/lisp/site/porph-screen/data/UPORS_2014-09-15.csv")
-
-;; (defun parse-data (file-path)
-;;   "Read in the csv and return a list of spectra structs"
-;;   (let* ((data (clean-up file-path))
-;;          (sample-data
-;;           (let ((accum nil))
-;;             (dotimes (line 2 (reverse accum))
-;;               (push (car (cl-csv:read-csv (read-line data-stream nil 'eol))) accum))))
-;;          (ids (get-sample-names sample-data))
-;;          (data-set (remove-empty (cl-csv:read-csv data-stream)))
-;;          (rotated-data (rotate data-set))
-;;          (spectra (list-of-spectra ids rotated-data)))
-;;     spectra))
 
 (defun build-spectra (file-path matrix)
   "Master function to create a list of spectra structs: from csv file and sample matrix choice"
@@ -113,7 +110,7 @@
   "Create a csv file of the results"
   (let* ((file-name (concatenate 'string
                                  "results_" (pathname-name (pathname data-pathname)) ".csv"))
-        (out-file (merge-pathnames *data-repository* file-name )))
+         (out-file (merge-pathnames *data-repository* file-name )))
     (with-open-file (out out-file :direction :output
                          :if-exists :supersede)
       (dolist (spectra spectra-list)
@@ -123,6 +120,25 @@
                (conc (first results-list))
                (result (second results-list)))
           (format out "~A,~A,~A,~A~%" id matrix conc result))))))
+
+(defun print-spectra-list (spectra-list &optional (data-pathname *data-pathname*))
+  "Print the spectra list to file"
+  (let* ((file-name (concatenate 'string
+                                 "spectra_" (pathname-name (pathname data-pathname))))
+         (out-file (merge-pathnames *data-repository* file-name )))
+    (with-open-file (out out-file :direction :output
+                         :if-exists :supersede)
+      (print spectra-list out))))
+
+(defun read-spectra-list (file-name)
+  "Read the spectra list from file"
+  (let ((in-file (merge-pathnames *data-repository* file-name )))
+    (with-open-file (in in-file :direction :input
+                         :if-does-not-exist nil)
+      (read in in-file))))
+
+
+
 ;;;;; Calculation of
 ;; 2 x Dmax - (D1 + D2) = corrected O.D. x 1.1097 x 1.05 (dilution
 ;; factor) = nmol/mL x total volume in mL = nmol/d.  If the total volume

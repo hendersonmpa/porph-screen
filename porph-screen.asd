@@ -8,7 +8,8 @@
   :depends-on (:cl-csv
                :parse-number
                :cl-who
-               :hunchentoot)
+               :hunchentoot
+               :cl-ppcre)
   :components ((:file "package")
                (:file "find-points")
                (:file "net-abs")

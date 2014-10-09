@@ -4,8 +4,9 @@
         :cl-csv
         :parse-number
         :cl-who
-        :hunchentoot))
+        :hunchentoot
+        :cl-ppcre))
 
-;; (rename-package "CL-PPCRE" "CL-PPCRE" '("RE"))
+(rename-package "CL-PPCRE" "CL-PPCRE" '("RE"))
 ; (rename-package "HUNCHENTOOT" "HUNCHENTOOT" '("HUNCH"))
 (rename-package "CL-WHO" "CL-WHO" '("WHO"))

@@ -175,10 +175,7 @@
     (:ol
      (dolist (spectra *spectra*)
        (let* ((id (spectra-id spectra))
-             (triangle (spectra-triangle spectra))
-             (base1 (triangle-base1 triangle))
-             (peak (triangle-peak triangle))
-             (base2 (triangle-base2 triangle))
+             (net-abs (spectra-net-abs spectra))
              (plot-name (concatenate 'string  "/data/" id ".png")))
          (cl-who:htm
           (:li
@@ -188,47 +185,26 @@
                     (:form :action "/update" :method "post" :id "user-input"
                            (:table (:tr
                                     (:th "Sample ID" )
-                                    (:th "Base 1 (nm)")
-                                    (:th "Peak (nm)")
-                                    (:th "Base 2 (nm)")
                                     (:th "Net Absorbance"))
                                    (:tr
                                     (:td (str id))
-                                    (:td (str (point-x base1)))
-                                    (:td (str (point-x peak)))
-                                    (:td (str (point-x base2)))
-                                    (:td (str (spectra-net-abs spectra))))
-                                   (:tr
-                                    (:td
-                                     (:input :type :text :name "id"
-                                             :value (str id) :class "txt"))
-                                    (:td
-                                     (:input :type :text :name "base1-nm"
-                                             :value (str (point-x base1)) :class "txt"))
-                                    (:td
-                                     (:input :type :text :name "peak-nm"
-                                             :value (str (point-x peak)) :class "txt"))
-                                    (:td
-                                     (:input :type :text :name "base2-nm"
-                                             :value (str (point-x base2)) :class "txt"))
-                                    (:td
-                                     (:input :type :submit :value "Re-calculate" :class "btn")))))
+                                    (:td (str net-abs)))))
                     (:img :src plot-name :alt "plot goes here")))))))
     (:form :action "/report"
            (:input :type :submit :value "Create Report" :class "btn"))))
 
-(hunchentoot:define-easy-handler (update :uri "/update") (id base1-nm peak-nm base2-nm)
-  ;; TODO include error handling in case all fields are not completed
-  (let* ((spectra (dolist (spectra *spectra*)
-                    (when (equalp id (spectra-id spectra)) (return spectra))))
-         (base1 (find-nearest-point (parse-integer base1-nm :junk-allowed t) spectra))
-         (peak (find-nearest-point (parse-integer peak-nm :junk-allowed t) spectra))
-         (base2 (find-nearest-point (parse-integer base2-nm :junk-allowed t) spectra))
-        (triangle (make-triangle :base1 base1 :peak peak :base2 base2)))
-    (setf (spectra-triangle spectra) triangle)
-    (setf (spectra-net-abs spectra) (net-abs spectra))
-    (single-plot spectra)
-    (redirect (concatenate 'string "/plots#" id))))
+;; (hunchentoot:define-easy-handler (update :uri "/update") (id base1-nm peak-nm base2-nm)
+;;   ;; TODO include error handling in case all fields are not completed
+;;   (let* ((spectra (dolist (spectra *spectra*)
+;;                     (when (equalp id (spectra-id spectra)) (return spectra))))
+;;          (base1 (find-nearest-point (parse-integer base1-nm :junk-allowed t) spectra))
+;;          (peak (find-nearest-point (parse-integer peak-nm :junk-allowed t) spectra))
+;;          (base2 (find-nearest-point (parse-integer base2-nm :junk-allowed t) spectra))
+;;         (triangle (make-triangle :base1 base1 :peak peak :base2 base2)))
+;;     (setf (spectra-triangle spectra) triangle)
+;;     (setf (spectra-net-abs spectra) (net-abs spectra))
+;;     (single-plot spectra)
+;;     (redirect (concatenate 'string "/plots#" id))))
 
 (hunchentoot:define-easy-handler (report :uri "/report") ()
   (let ((time (multiple-value-bind (sec min hour date mon year)
@@ -236,6 +212,7 @@
                 (declare (ignore sec))
                 (format nil "~d-~2,'0d-~2,'0d ~2,'0d:~2,'0d" year mon date hour min))))
     (results-csv *spectra*)
+    (print-spectra-list *spectra*)
     (standard-page (:title "Porphyrin Screen")
       (:h2 (format t "Porphyrin Screen Results Report ~A" time))
       (:ol

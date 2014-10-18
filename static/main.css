@@ -190,13 +190,13 @@ th {
 } 
 
 /* Footer */
-footer{
+footer {
 	float: right;
 	margin-left: 1.5em;
 	margin-top: 0.5em;
 }
 
-footer .stamp{
+footer .stamp {
 	float: right;
         max-width: 25%;/*adjust this value to your needs*/
         height: auto;
@@ -208,9 +208,12 @@ footer .stamp{
 
 @media print {
 
-nav, header .strapline, header .logo,h3, img, footer .stamp {
+nav, header .strapline, header .logo,h3, img, footer .stamp  {
     display: none;
 }
+
+section {border-bottom: 0;
+         margin-bottom: 1em;}
 h2 {font-size: 14pt;}
 th,td {font-size: 10pt;}
 footer { font-size: 5pt;}

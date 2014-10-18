@@ -21,6 +21,22 @@
 (defstruct point "Cartesian co-ordinates" x y )
 ;(defstruct triangle "The three points in an absorbance curve" base1 peak base2)
 
+(defclass spectra ()
+    ((id :initarg :id :accessor id)
+        (nm :initarg :nm :accessor nm)
+        (abs :initarg :abs :accessor abs)
+        (bkgd :initarg :bkgd :accessor bkgd)
+        (matrix :initarg :matrix :reader matrix)))
+
+(defclass urine-spectra (spectra)
+    ((matrix :initform "urine" :allocation :class)
+        (vol :initarg :vol :accessor vol)
+        (dil :initarg :dil :accessor dil)))
+
+(defclass fecal-spectra (spectra)
+    ((matrix :initform "fecal" :allocation :class)
+        (mass :initarg :mass :accessor mass)))
+
 ;;; Data Management
 ;;(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/2014-08-14.csv")
 (defparameter *data-repository* "/home/mpah/lisp/site/porph-screen/data/")

@@ -21,21 +21,21 @@
 (defstruct point "Cartesian co-ordinates" x y )
 ;(defstruct triangle "The three points in an absorbance curve" base1 peak base2)
 
-(defclass spectra ()
-    ((id :initarg :id :accessor id)
-        (nm :initarg :nm :accessor nm)
-        (abs :initarg :abs :accessor abs)
-        (bkgd :initarg :bkgd :accessor bkgd)
-        (matrix :initarg :matrix :reader matrix)))
+;; (defclass spectra ()
+;;     ((id :initarg :id :accessor id)
+;;         (nm :initarg :nm :accessor nm)
+;;         (abs :initarg :abs :accessor abs)
+;;         (bkgd :initarg :bkgd :accessor bkgd)
+;;         (matrix :initarg :matrix :reader matrix)))
 
-(defclass urine-spectra (spectra)
-    ((matrix :initform "urine" :allocation :class)
-        (vol :initarg :vol :accessor vol)
-        (dil :initarg :dil :accessor dil)))
+;; (defclass urine-spectra (spectra)
+;;     ((matrix :initform "urine" :allocation :class)
+;;         (vol :initarg :vol :accessor vol)
+;;         (dil :initarg :dil :accessor dil)))
 
-(defclass fecal-spectra (spectra)
-    ((matrix :initform "fecal" :allocation :class)
-        (mass :initarg :mass :accessor mass)))
+;; (defclass fecal-spectra (spectra)
+;;     ((matrix :initform "fecal" :allocation :class)
+;;         (mass :initarg :mass :accessor mass)))
 
 ;;; Data Management
 ;;(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/2014-08-14.csv")
@@ -87,6 +87,18 @@
 (defun rotate (list-of-lists)
 "Matrix transpose a list of lists so that column-major data becomes row major."
   (apply #'mapcar #'list list-of-lists))
+
+;; (defun make-urine-spectra (id nm abs)
+;;   (make-instance 'urine-spectra
+;;                  :id id
+;;                  :nm nm
+;;                  :abs abs))
+
+;; (defun make-fecal-spectra (id nm abs)
+;;   (make-instance 'fecal-spectra
+;;                  :id id
+;;                  :nm nm
+;;                  :abs abs))
 
 (defun list-of-spectra (ids rotated-data)
   (labels ((str-to-num (line)

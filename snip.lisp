@@ -37,8 +37,8 @@ z-bar(x,w) = [z(x + w) + z (x - w)]/2"
     (dotimes (p len (reverse accum))
       (push (min (elt z-list p) (z-bar z-list p w)) accum))))
 
-(defun mppc-do (spectra-struct &optional (n *iterations*))
-  (let ((z-list (spectra-abs spectra-struct)))
+(defun mppc-do (spectra-object &optional (n *iterations*))
+  (let ((z-list (ab spectra-object)))
     (do ((count 0 (1+ count))
          (new-list z-list (mppc new-list)))
         ((> count n) new-list))))
@@ -53,11 +53,11 @@ gnuplot> plot for [IDX=start:end:step] 'file-name' index IDX u 1:2 title columnh
   (terpri stream)
   (terpri stream))
 
-(defun mppc-to-file (spectra-struct &optional (w *window*) (n *iterations*) )
+(defun mppc-to-file (spectra-object &optional (w *window*) (n *iterations*) )
   "gnuplot> plot for [IDX=0:50:10] 'mppc_5' index IDX u 1:2 title columnheader(1)"
   (let ((file-name (concatenate 'string "mppc_" (write-to-string w)))
-        (z-list (spectra-abs spectra-struct))
-        (x-list (spectra-nm spectra-struct)))
+        (z-list (ab spectra-object))
+        (x-list (nm spectra-object)))
     (with-open-file (out file-name :direction :output
                          :if-exists :supersede)
       (do ((count 0 (1+ count))
@@ -65,23 +65,23 @@ gnuplot> plot for [IDX=start:end:step] 'file-name' index IDX u 1:2 title columnh
           ((equal count n) new-list)
         (print-spectra new-list x-list out count)))))
 
-(defun background-substraction (spectra-struct)
-  (let* ((abs (spectra-abs spectra-struct))
-         (background (mppc-do spectra-struct))
-         (corrected (map 'list #'- abs background)))
-    (setf (spectra-bkgd spectra-struct) background)
+(defun background-substraction (spectra-object)
+  (let* ((ab (ab spectra-object))
+         (background (mppc-do spectra-object))
+         (corrected (map 'list #'- ab background)))
+    (setf (bkgd spectra-object) background)
     corrected))
 
-(defun net-abs (spectra-struct &optional (lower-limit 401) (upper-limit 405))
-  (let* ((alon (spectra-nm spectra-struct))
-         (corrected (background-substraction spectra-struct))
+(defun find-net-ab (spectra-object &optional (lower-limit 401) (upper-limit 405))
+  (let* ((alon (nm spectra-object))
+         (corrected (background-substraction spectra-object))
          (nm-window (mapcan
                      #'(lambda (x)
                          (and (> x lower-limit)
                               (< x upper-limit)
                               (list (position x alon)))) alon))
-         (abs-values (subseq corrected
+         (ab-values (subseq corrected
                              (first nm-window)
                              (car (last nm-window))))
-         (max-abs (apply #'max abs-values)))
-    (setf (spectra-net-abs spectra-struct) max-abs)))
+         (max-ab (apply #'max ab-values)))
+    (setf (net-ab spectra-object) max-ab)))

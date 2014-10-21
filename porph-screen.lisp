@@ -127,7 +127,8 @@
 
 ;;(parse-data2 "/home/mpah/lisp/site/porph-screen/data/UPORS_2014-09-15.csv")
 
-(defun build-spectra (file-path matrix)
+
+(defun build-spectra-list (file-path matrix)
   "Master function to create a list of spectra structs: from csv file and sample matrix choice"
   (let ((spectra-list (parse-data file-path matrix))
         (accum nil))
@@ -137,19 +138,18 @@
       (push spectra accum))))
 
 
-(defgeneric sample-size-info (spectra &key vol mass dil)
+(defgeneric sample-size-info (spectra &optional amount dil)
   (:documentation
    "Add information about sample mass or volume for concentration
    calculations"))
 
-(defmethod sample-size-info ((s urine-spectra) &key vol mass dil)
-o  (declare (ignore mass))
-  (setf (vol s) vol)
+(defmethod sample-size-info ((s urine-spectra) &optional amount dil)
+  (setf (vol s) amount)
   (setf (dil s) dil))
 
-(defmethod sample-size-info ((s fecal-spectra) &key vol mass dil)
-  (declare (ignore vol mass))
-  (setf (vol s) mass))
+(defmethod sample-size-info ((s fecal-spectra) &optional amount dil)
+  (declare (ignore dil))
+    (setf (mass s) amount))
 
 (defparameter *urine-constant* 1.1097)
 (defparameter *fecal-constant* 14.85)
@@ -172,42 +172,56 @@ o  (declare (ignore mass))
                    (n net-ab)) s
     (round (/ (* n *fecal-constant*) (/ m 1000)))))
 
-;; ;; Normal if concentration <110 nmol/d for 24 h collections
-;; ;; or <110 nmol/L for random specimens.
-;; ;; Borderline if concentration is between 110 and 200 nmol/d or nmol/L.
-;; ;; Append the footnote POR 3 which expands to “Quantitation to follow”.  Test request a
-;; ;; quantitative urine porphyrin.
-;; ;; Elevated if concentration is >200 nmol/d or nmol/L.  Append the footnote POR 3.
-;; ;; Test request a quantitative urine porphyrin.
+;; Normal if concentration <60  nmol/d for 24 h collections
+;; or <60 nmol/L for random specimens.
+;; Borderline if concentration is between 60 and 100 nmol/d or nmol/L.
+;; Append the footnote POR 3 which expands to “Quantitation to follow”.  Test request a
+;; quantitative urine porphyrin.
+;; Elevated if concentration is >100 nmol/d or nmol/L.  Append the footnote POR 3.
+;; Test request a quantitative urine porphyrin.
 
-;; (defun results (spectra-struct)
-;;   (let ((matrix (spectra-matrix spectra-struct))
-;;         (conc (concentration spectra-struct)))
-;;     (cond ((string= "urine" matrix)
-;;            (cond ((and (>= conc -10) (< conc 110))(list conc "Normal"))
-;;                  ((and (>= conc 110) (<= conc 200))(list conc "Borderline"))
-;;                  ((> conc 200)(list conc "Elevated"))
-;;                  (t (list conc "Interference?"))))
-;;           ((string= "fecal" matrix)
-;;            (cond ((and (>= conc -10) (<= conc 35))(list conc "Normal"))
-;;                  ((> conc 35) (list conc "Elevated"))
-;;                  (t (list conc "Interference?")))))))
+(defgeneric classify-spectra (spectra)
+  (:documentation
+   "Determine Semi-quantitative results using the screening thresholds.
+Return concentration and class in a list"))
 
-;; ;; (defparameter *spectra* (complete-spectra *test-file*))
-;; (defun results-csv (spectra-list &optional (data-pathname *data-pathname*))
-;;   "Create a csv file of the results"
-;;   (let* ((file-name (concatenate 'string
-;;                                  "results_" (pathname-name (pathname data-pathname)) ".csv"))
-;;          (out-file (merge-pathnames *data-repository* file-name )))
-;;     (with-open-file (out out-file :direction :output
-;;                          :if-exists :supersede)
-;;       (dolist (spectra spectra-list)
-;;         (let* ((id (spectra-id spectra))
-;;                (matrix (spectra-matrix spectra))
-;;                (results-list (results spectra))
-;;                (conc (first results-list))
-;;                (result (second results-list)))
-;;           (format out "~A,~A,~A,~A~%" id matrix conc result))))))
+(defmethod classify-spectra ((s urine-spectra))
+  (let ((conc (calculate-concentration s)))
+    (cond ((and (>= conc -10) (< conc 60))(list conc "Normal"))
+          ((and (>= conc 60) (<= conc 100))(list conc "Borderline"))
+          ((> conc 100)(list conc "Elevated"))
+          (t (list conc "Interference?")))))
+
+(defmethod classify-spectra ((s fecal-spectra))
+  (let ((conc (calculate-concentration s)))
+    (cond ((and (>= conc -10) (<= conc 28))(list conc "Normal"))
+          ((> conc 28) (list conc "Elevated"))
+          (t (list conc "Interference?")))))
+
+
+;; (defparameter *spectra* (complete-spectra *test-file*))
+;; Create a method to formate spectra output
+
+(defgeneric print-results (spectra strm)
+(:documentation  "Print the results of the spectra analysis"))
+
+(defmethod print-results ((s spectra) strm)
+  (with-accessors ((i id)
+                   (m matrix)) s
+    (let* ((results-list (classify-spectra s))
+           (conc (first results-list))
+           (result (second results-list)))
+      (format strm "~A,~A,~A,~A~%" i m conc result))))
+
+(defun results-csv (spectra-list &optional (data-pathname *data-pathname*))
+  "Create a csv file of the results"
+  (let* ((file-name (concatenate 'string
+                                 "results_" (pathname-name (pathname data-pathname)) ".csv"))
+         (out-file (merge-pathnames *data-repository* file-name )))
+    (with-open-file (out out-file :direction :output
+                         :if-exists :supersede)
+      (dolist (spectra spectra-list)
+        (print-results spectra out)))))
 
 ;; (defun print-spectra-list (spectra-list &optional (data-pathname *data-pathname*))
 ;;   "Print the spectra list to file"
@@ -224,11 +238,3 @@ o  (declare (ignore mass))
 ;;     (with-open-file (in in-file :direction :input
 ;;                          :if-does-not-exist nil)
 ;;       (read in in-file))))
-
-;; ;;;;; Calculation of
-;; ;; 2 x Dmax - (D1 + D2) = corrected O.D. x 1.1097 x 1.05 (dilution
-;; ;; factor) = nmol/mL x total volume in mL = nmol/d.  If the total volume
-;; ;; of concentrated acid added is 100 μL then the dilution factor is
-;; ;; 1.05. (If 200 μL concentrated acid is added the dilution factor is
-;; ;; 1.10, 300 μL is 1.15, etc.). For random urine specimens and controls
-;; ;; the volume is 1000 mL.

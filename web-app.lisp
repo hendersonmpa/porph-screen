@@ -145,7 +145,7 @@
   (cond ((null spectra-csv) (redirect "/select"))
         (t (let ((file-name (concatenate 'string *data-repository* (cadr spectra-csv))))
            (rename-file (car spectra-csv) file-name)
-           (setf *spectra* (build-spectra file-name matrix))
+           (setf *spectra* (build-spectra-list file-name matrix))
            (setf *data-pathname* (pathname file-name))
            (standard-page (:title "Upload Complete")
              (:h3 "The file has been uploaded to the server")

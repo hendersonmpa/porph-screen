@@ -107,6 +107,7 @@
            (:p (:input :type :submit :value "Submit" :class "btn")))))
 
 
+(defgeneric sample-table ())
 (defun urine-sample-table (spectra-list)
   (who:with-html-output
       (*standard-output* nil :prologue nil :indent t)
@@ -115,7 +116,7 @@
              (:th "Volume (mL)")
              (:th "Acid (mL)"))
             (dolist (spectra spectra-list)
-              (let ((id (spectra-id spectra)))
+              (let ((id (id spectra)))
                 (cl-who:htm
                  (:tr
                   (:td (:input :type "text":name "id" :value (str id) :class "txt"))
@@ -129,17 +130,14 @@
       (*standard-output* nil :prologue nil :indent t)
     (:table (:tr
              (:th "ID" )
-             (:th "Weight (mg)")
-             (:th "Acid (mL)"))
+             (:th "Weight (mg)"))
             (dolist (spectra spectra-list)
-              (let ((id (spectra-id spectra)))
+              (let ((id (id spectra)))
                 (cl-who:htm
                  (:tr
                   (:td (:input :type "text" :name "id" :value (str id) :class "txt"))
-                  (:td (:input :type "text" :name (format nil "~A-vol" id )
-                           :value 25 :class "txt"))
-                  (:td (:input :type "text" :name (format nil "~A-dil" id )
-                               :value 4.5 :class "txt")))))))))
+                  (:td (:input :type "text" :name "vol"
+                           :value 25 :class "txt")))))))))
 
 (define-easy-handler (upload :uri "/upload") (spectra-csv matrix)
   (cond ((null spectra-csv) (redirect "/select"))
@@ -159,39 +157,44 @@
                            (t (cl-who:htm (:p "please enter a sample type")))))
                     (:input :type :submit :value "Submit" :class "btn")))))))
 
+(defun print-post-param ()
+  (print hunchentoot:post-parameters*))
 (hunchentoot:define-easy-handler (info :uri "/info") ()
   (let ((alop (hunchentoot:post-parameters*)))
-    (loop for (id vol dil) on alop by #'cdddr
-       do (loop for spectra in *spectra*
-             if (string= (spectra-id spectra) (cdr id))
-             do (add-info spectra (parse-number (cdr vol))
-                          (parse-number (cdr dil))))))
-  (plot-data *spectra*)
-  (redirect "/plots"))
+    (setf *alop* alop)
+    ;; (loop for (id vol dil) on alop by #'cdddr
+    ;;    do (loop for spectra in *spectra*
+    ;;          if (string= (id spectra) (cdr id))
+    ;;          do (sample-size-info spectra (parse-number (cdr vol))
+    ;;                       (parse-number (cdr dil))))))
+  ;; (plot-data *spectra*)
+  ;; (redirect "/plots")
+    ))
 
-(hunchentoot:define-easy-handler (plots :uri "/plots") ()
-  (standard-page (:title "Absorbance Spectra")
-    (:h2 "Porphyrin Screen Absorbance Spectra Analysis")
-    (:ol
-     (dolist (spectra *spectra*)
-       (let* ((id (spectra-id spectra))
-             (net-abs (spectra-net-abs spectra))
-             (plot-name (concatenate 'string  "/data/" id ".png")))
-         (cl-who:htm
-          (:li
-           (:section
-            :id id
-                     (:h3 (format t "Absorbance Spectra: ~A" id))
-                    (:form :action "/update" :method "post" :id "user-input"
-                           (:table (:tr
-                                    (:th "Sample ID" )
-                                    (:th "Net Absorbance"))
-                                   (:tr
-                                    (:td (str id))
-                                    (:td (str net-abs)))))
-                    (:img :src plot-name :alt "plot goes here")))))))
-    (:form :action "/report"
-           (:input :type :submit :value "Create Report" :class "btn"))))
+
+;; (hunchentoot:define-easy-handler (plots :uri "/plots") ()
+;;   (standard-page (:title "Absorbance Spectra")
+;;     (:h2 "Porphyrin Screen Absorbance Spectra Analysis")
+;;     (:ol
+;;      (dolist (spectra *spectra*)
+;;        (let* ((id (spectra-id spectra))
+;;              (net-abs (spectra-net-abs spectra))
+;;              (plot-name (concatenate 'string  "/data/" id ".png")))
+;;          (cl-who:htm
+;;           (:li
+;;            (:section
+;;             :id id
+;;                      (:h3 (format t "Absorbance Spectra: ~A" id))
+;;                     (:form :action "/update" :method "post" :id "user-input"
+;;                            (:table (:tr
+;;                                     (:th "Sample ID" )
+;;                                     (:th "Net Absorbance"))
+;;                                    (:tr
+;;                                     (:td (str id))
+;;                                     (:td (str net-abs)))))
+;;                     (:img :src plot-name :alt "plot goes here")))))))
+;;     (:form :action "/report"
+;;            (:input :type :submit :value "Create Report" :class "btn"))))
 
 ;; (hunchentoot:define-easy-handler (update :uri "/update") (id base1-nm peak-nm base2-nm)
 ;;   ;; TODO include error handling in case all fields are not completed
@@ -212,7 +215,7 @@
                 (declare (ignore sec))
                 (format nil "~d-~2,'0d-~2,'0d ~2,'0d:~2,'0d" year mon date hour min))))
     (results-csv *spectra*)
-    (print-spectra-list *spectra*)
+;;    (print-spectra-list *spectra*)
     (standard-page (:title "Porphyrin Screen")
       (:h2 (format t "Porphyrin Screen Results Report ~A" time))
       (:ol

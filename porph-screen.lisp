@@ -36,10 +36,22 @@
 
 (defclass fecal-spectra (spectra)
     ((matrix :initform "fecal")
-     (mass :initarg :mass :accessor mass)))
+     (vol :initarg :mass :accessor vol)))
+
+(defclass spectra-list ()
+  ((los :initarg :los :accessor los)
+   (matrix :initarg :matrix :accessor matrix)))
+
+(defclass urine-spectra-list (spectra-list)
+  ((los :initarg :los :accessor los)
+   (matrix :initform "urine")))
+
+(defclass fecal-spectra-list (spectra-list)
+  ((los :initarg :los :accessor los)
+   (matrix :initform "fecal")))
 
 ;;; Data Management
-(defparameter *test-file* "/home/mpah/lisp/site/porph-screen/data/UPORS_2014-09-15.csv")
+(defparameter *test-file* "/home/mpah/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
 (defparameter *data-repository* "/home/mpah/lisp/site/porph-screen/data/")
 (defparameter *data-pathname* nil "The local name of the raw data file")
 
@@ -99,21 +111,23 @@
                  :nm nm
                  :ab ab))
 
-(defun list-of-spectra (ids rotated-data matrix)
+(defun make-fecal-spectra-list (ids rotated-data)
   (labels ((str-to-num (line)
              (mapcar #'parse-number line)))
-    (cond ((string= matrix "fecal")
-           (loop for (nm ab) on rotated-data by #'cddr
-              for id in ids collect
-                (make-fecal-spectra id
-                                    (reverse (str-to-num nm))
-                                    (reverse (str-to-num ab))))))
-    (cond ((string= matrix "urine")
-           (loop for (nm ab) on rotated-data by #'cddr
-              for id in ids collect
-                (make-urine-spectra id
-                                    (reverse (str-to-num nm))
-                                    (reverse (str-to-num ab))))))))
+    (loop for (nm ab) on rotated-data by #'cddr
+       for id in ids collect
+         (make-fecal-spectra id
+                             (reverse (str-to-num nm))
+                             (reverse (str-to-num ab))))))
+
+(defun make-urine-spectra-list (ids rotated-data)
+  (labels ((str-to-num (line)
+             (mapcar #'parse-number line)))
+    (loop for (nm ab) on rotated-data by #'cddr
+       for id in ids collect
+         (make-urine-spectra id
+                             (reverse (str-to-num nm))
+                             (reverse (str-to-num ab))))))
 
 (defun parse-data (file-path matrix)
   "Read in the csv and parse the numbers"
@@ -121,18 +135,24 @@
          (data-set (cl-csv:read-csv data))
          (id-line (car data-set))
          (ids (get-sample-names id-line))
-         (rotated-data (rotate (cddr data-set)))
-         (spectra (list-of-spectra ids rotated-data matrix)))
-    spectra))
+         (rotated-data (rotate (cddr data-set))))
+    (cond ((string= matrix "urine")
+           (make-urine-spectra-list ids rotated-data))
+          ((string= matrix "fecal")
+           (make-fecal-spectra-list ids rotated-data)))))
 
 ;;(parse-data2 "/home/mpah/lisp/site/porph-screen/data/UPORS_2014-09-15.csv")
-
 
 (defun build-spectra-list (file-path matrix)
   "Master function to create a list of spectra structs: from csv file and sample matrix choice"
   (let ((spectra-list (parse-data file-path matrix))
         (accum nil))
-    (dolist (spectra spectra-list (reverse accum))
+    (dolist (spectra spectra-list (cond ((string= matrix "urine")
+                                         (make-instance 'urine-spectra-list
+                                                        :los accum))
+                                        ((string= matrix "fecal")
+                                         (make-instance 'fecal-spectra-list
+                                                        :los accum))))
       (setf (net-ab spectra) (find-net-ab spectra))
       (setf (matrix spectra) matrix)
       (push spectra accum))))
@@ -149,7 +169,7 @@
 
 (defmethod sample-size-info ((s fecal-spectra) &optional amount dil)
   (declare (ignore dil))
-    (setf (mass s) amount))
+    (setf (vol s) amount))
 
 (defparameter *urine-constant* 1.1097)
 (defparameter *fecal-constant* 14.85)

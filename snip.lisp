@@ -54,8 +54,8 @@ gnuplot> plot for [IDX=start:end:step] 'file-name' index IDX u 1:2 title columnh
   (terpri stream))
 
 (defun mppc-to-file (spectra-object &optional (w *window*) (n *iterations*) )
-  "gnuplot> plot for [IDX=0:50:10] 'mppc_5' index IDX u 1:2 title columnheader(1)"
-  (let ((file-name (concatenate 'string "mppc_" (write-to-string w)))
+  "gnuplot> plot for [IDX=0:50:10] 'mppc_5' index IDX u 1:2 title columnheader(1)
+  (let ((file-name (concatenate 'string \"mppc_\" (write-to-string w)))
         (z-list (ab spectra-object))
         (x-list (nm spectra-object)))
     (with-open-file (out file-name :direction :output
@@ -63,7 +63,7 @@ gnuplot> plot for [IDX=start:end:step] 'file-name' index IDX u 1:2 title columnh
       (do ((count 0 (1+ count))
            (new-list z-list (mppc new-list w)))
           ((equal count n) new-list)
-        (print-spectra new-list x-list out count)))))
+        (print-spectra new-list x-list out count))))")
 
 (defun background-substraction (spectra-object)
   (let* ((ab (ab spectra-object))

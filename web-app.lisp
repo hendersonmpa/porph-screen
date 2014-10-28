@@ -107,37 +107,43 @@
            (:p (:input :type :submit :value "Submit" :class "btn")))))
 
 
-(defgeneric sample-table ())
-(defun urine-sample-table (spectra-list)
-  (who:with-html-output
-      (*standard-output* nil :prologue nil :indent t)
-    (:table (:tr
-             (:th "ID")
-             (:th "Volume (mL)")
-             (:th "Acid (mL)"))
-            (dolist (spectra spectra-list)
-              (let ((id (id spectra)))
-                (cl-who:htm
-                 (:tr
-                  (:td (:input :type "text":name "id" :value (str id) :class "txt"))
-                  (:td (:input :type "text":name (format nil "~A-vol" id )
-                           :value 1000 :class "txt"))
-                  (:td (:input :type "text" :name (format nil "~A-dil" id )
-                           :value 1.05 :class "txt")))))))))
+(defgeneric sample-table (spectra-list)
+  (:documentation "Sample table for matrix"))
 
-(defun fecal-sample-table (spectra-list)
-  (who:with-html-output
-      (*standard-output* nil :prologue nil :indent t)
-    (:table (:tr
-             (:th "ID" )
-             (:th "Weight (mg)"))
-            (dolist (spectra spectra-list)
-              (let ((id (id spectra)))
-                (cl-who:htm
-                 (:tr
-                  (:td (:input :type "text" :name "id" :value (str id) :class "txt"))
-                  (:td (:input :type "text" :name "vol"
-                           :value 25 :class "txt")))))))))
+(defmethod sample-table ((s urine-spectra-list))
+  (let ((spectra-list (los s)))
+    (who:with-html-output
+        (*standard-output* nil :prologue nil :indent t)
+      (:table (:tr
+               (:th "ID")
+               (:th "Volume (mL)")
+               (:th "Acid (mL)"))
+              (dolist (spectra spectra-list)
+                (let ((id (id spectra)))
+                  (cl-who:htm
+                   (:tr
+                    (:td (:input :type "text":name "id" :value (str id) :class "txt"
+                                 :readonly "readonly"))
+                    (:td (:input :type "text":name (format nil "~A-vol" id )
+                                 :value 1000 :class "txt"))
+                    (:td (:input :type "text" :name (format nil "~A-dil" id )
+                                 :value 1.05 :class "txt"))))))))))
+
+(defmethod sample-table ((s fecal-spectra-list))
+  (let ((spectra-list (los s)))
+    (who:with-html-output
+        (*standard-output* nil :prologue nil :indent t)
+      (:table (:tr
+               (:th "ID" )
+               (:th "Weight (mg)"))
+              (dolist (spectra spectra-list)
+                (let ((id (id spectra)))
+                  (cl-who:htm
+                   (:tr
+                    (:td (:input :type "text" :name "id" :value (str id) :class "txt"
+                                 :readonly "readonly"))
+                    (:td (:input :type "text" :name "vol"
+                                 :value 25 :class "txt"))))))))))
 
 (define-easy-handler (upload :uri "/upload") (spectra-csv matrix)
   (cond ((null spectra-csv) (redirect "/select"))
@@ -152,49 +158,63 @@
              (:h3 "Please indicate sample volume and the volume of acid added")
              (:form :action "/info" :method "post" :id "info-list"
                     (:ol
-                     (cond ((string= "urine" matrix)(urine-sample-table *spectra*))
-                           ((string= "fecal" matrix)(fecal-sample-table *spectra*))
-                           (t (cl-who:htm (:p "please enter a sample type")))))
+                     (sample-table *spectra*))
                     (:input :type :submit :value "Submit" :class "btn")))))))
 
-(defun print-post-param ()
-  (print hunchentoot:post-parameters*))
+;; Changing the form cells
+;;<input type="hidden" name="hiddenfield" value="text" />
+;;<input type="text" name="rofield" value="text" readonly="readonly" />
+
+(defgeneric process-form (spectra-list parameters-a-list)
+  (:documentation "Process the a-lists from the sample table"))
+
+(defmethod process-form ((s urine-spectra-list) parameters-a-list)
+  (let ((spectra-list (los s)))
+    (loop for (id vol dil) on parameters-a-list by #'cdddr
+       do (loop for spectra in spectra-list
+             if (string= (id spectra) (cdr id))
+             do (sample-size-info spectra (parse-number (cdr vol))
+                                  (parse-number (cdr dil)))))))
+
+(defmethod process-form ((s fecal-spectra-list) parameters-a-list)
+  (let ((spectra-list (los s)))
+    (loop for (id vol) on parameters-a-list by #'cddr
+       do (loop for spectra in spectra-list
+             if (string= (id spectra) (cdr id))
+             do (sample-size-info spectra (parse-number (cdr vol)))))))
+
 (hunchentoot:define-easy-handler (info :uri "/info") ()
   (let ((alop (hunchentoot:post-parameters*)))
-    (setf *alop* alop)
-    ;; (loop for (id vol dil) on alop by #'cdddr
-    ;;    do (loop for spectra in *spectra*
-    ;;          if (string= (id spectra) (cdr id))
-    ;;          do (sample-size-info spectra (parse-number (cdr vol))
-    ;;                       (parse-number (cdr dil))))))
-  ;; (plot-data *spectra*)
-  ;; (redirect "/plots")
-    ))
+;;    (setf *alop* alop)
+    (process-form *spectra* alop))
+  (plot-data *spectra*)
+  (redirect "/plots"))
 
 
-;; (hunchentoot:define-easy-handler (plots :uri "/plots") ()
-;;   (standard-page (:title "Absorbance Spectra")
-;;     (:h2 "Porphyrin Screen Absorbance Spectra Analysis")
-;;     (:ol
-;;      (dolist (spectra *spectra*)
-;;        (let* ((id (spectra-id spectra))
-;;              (net-abs (spectra-net-abs spectra))
-;;              (plot-name (concatenate 'string  "/data/" id ".png")))
-;;          (cl-who:htm
-;;           (:li
-;;            (:section
-;;             :id id
-;;                      (:h3 (format t "Absorbance Spectra: ~A" id))
-;;                     (:form :action "/update" :method "post" :id "user-input"
-;;                            (:table (:tr
-;;                                     (:th "Sample ID" )
-;;                                     (:th "Net Absorbance"))
-;;                                    (:tr
-;;                                     (:td (str id))
-;;                                     (:td (str net-abs)))))
-;;                     (:img :src plot-name :alt "plot goes here")))))))
-;;     (:form :action "/report"
-;;            (:input :type :submit :value "Create Report" :class "btn"))))
+(hunchentoot:define-easy-handler (plots :uri "/plots") ()
+  (let ((spectra-list (los *spectra*)))
+    (standard-page (:title "Absorbance Spectra")
+      (:h2 "Porphyrin Screen Absorbance Spectra Analysis")
+      (:ol
+       (dolist (spectra spectra-list)
+         (let* ((id (id spectra))
+                (net-ab (net-ab spectra))
+                (plot-name (concatenate 'string  "/data/" id ".png")))
+           (cl-who:htm
+            (:li
+             (:section
+              :id id
+              (:h3 (format t "Absorbance Spectra: ~A" id))
+              (:form :action "/update" :method "post" :id "user-input"
+                     (:table (:tr
+                              (:th "Sample ID" )
+                              (:th "Net Absorbance"))
+                             (:tr
+                              (:td (str id))
+                              (:td (str net-ab)))))
+              (:img :src plot-name :alt "plot goes here")))))))
+      (:form :action "/report"
+             (:input :type :submit :value "Create Report" :class "btn")))))
 
 ;; (hunchentoot:define-easy-handler (update :uri "/update") (id base1-nm peak-nm base2-nm)
 ;;   ;; TODO include error handling in case all fields are not completed
@@ -213,16 +233,17 @@
   (let ((time (multiple-value-bind (sec min hour date mon year)
                   (get-decoded-time)
                 (declare (ignore sec))
-                (format nil "~d-~2,'0d-~2,'0d ~2,'0d:~2,'0d" year mon date hour min))))
+                (format nil "~d-~2,'0d-~2,'0d ~2,'0d:~2,'0d" year mon date hour min)))
+        (spectra-list (los *spectra*)))
     (results-csv *spectra*)
 ;;    (print-spectra-list *spectra*)
     (standard-page (:title "Porphyrin Screen")
       (:h2 (format t "Porphyrin Screen Results Report ~A" time))
       (:ol
-       (dolist (spectra *spectra*)
-         (let* ((id (spectra-id spectra))
-                (matrix (string-capitalize (spectra-matrix spectra)))
-                (result (results spectra))
+       (dolist (spectra spectra-list)
+         (let* ((id (id spectra))
+                (matrix (string-capitalize (matrix spectra)))
+                (result (classify-spectra spectra))
                 (plot-name  (concatenate 'string  "/data/" id ".png")))
            (cl-who:htm
             (:li

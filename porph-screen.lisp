@@ -27,7 +27,9 @@
      (ab :initarg :ab :accessor ab)
      (bkgd :initarg :bkgd :accessor bkgd)
      (net-ab :initarg :net-ab :accessor net-ab)
-     (matrix :initarg :matrix :accessor matrix)))
+     (matrix :initarg :matrix :accessor matrix)
+     (concentration :initarg :concentration :accessor concentration)
+     (result :initarg :result :accessor result)))
 
 (defclass urine-spectra (spectra)
     ((matrix :initform "urine")
@@ -51,8 +53,10 @@
    (matrix :initform "fecal")))
 
 ;;; Data Management
-(defparameter *test-file* "/home/mpah/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
-(defparameter *data-repository* "/home/mpah/lisp/site/porph-screen/data/")
+(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
+;;(defparameter *test-file* "/home/mpah/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
+(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
+;;(defparameter *data-repository* "/home/mpah/lisp/site/porph-screen/data/")
 (defparameter *data-pathname* nil "The local name of the raw data file")
 
 ;; (defun clean-up (file-path)
@@ -157,7 +161,6 @@
       (setf (matrix spectra) matrix)
       (push spectra accum))))
 
-
 (defgeneric sample-size-info (spectra &optional amount dil)
   (:documentation
    "Add information about sample mass or volume for concentration
@@ -185,12 +188,12 @@
   (with-accessors ((v vol)
                    (d dil)
                    (n net-ab)) s
-    (round (* n *urine-constant* d v))))
+    (setf (concentration s) (round (* n *urine-constant* d v)))))
 
 (defmethod calculate-concentration ((s fecal-spectra))
-  (with-accessors ((m mass)
+  (with-accessors ((v vol)
                    (n net-ab)) s
-    (round (/ (* n *fecal-constant*) (/ m 1000)))))
+    (setf (concentration s) (round (/ (* n *fecal-constant*) (/ v 1000))))))
 
 ;; Normal if concentration <60  nmol/d for 24 h collections
 ;; or <60 nmol/L for random specimens.
@@ -206,18 +209,19 @@
 Return concentration and class in a list"))
 
 (defmethod classify-spectra ((s urine-spectra))
-  (let ((conc (calculate-concentration s)))
+  (calculate-concentration s)
+  (let ((conc (concentration s)))
     (cond ((and (>= conc -10) (< conc 60))(list conc "Normal"))
           ((and (>= conc 60) (<= conc 100))(list conc "Borderline"))
           ((> conc 100)(list conc "Elevated"))
           (t (list conc "Interference?")))))
 
 (defmethod classify-spectra ((s fecal-spectra))
-  (let ((conc (calculate-concentration s)))
+  (calculate-concentration s)
+  (let ((conc (concentration s)))
     (cond ((and (>= conc -10) (<= conc 28))(list conc "Normal"))
           ((> conc 28) (list conc "Elevated"))
           (t (list conc "Interference?")))))
-
 
 ;; (defparameter *spectra* (complete-spectra *test-file*))
 ;; Create a method to formate spectra output
@@ -233,10 +237,11 @@ Return concentration and class in a list"))
            (result (second results-list)))
       (format strm "~A,~A,~A,~A~%" i m conc result))))
 
-(defun results-csv (spectra-list &optional (data-pathname *data-pathname*))
+(defun results-csv (spectra-list-object &optional (data-pathname *data-pathname*))
   "Create a csv file of the results"
   (let* ((file-name (concatenate 'string
                                  "results_" (pathname-name (pathname data-pathname)) ".csv"))
+         (spectra-list (los spectra-list-object))
          (out-file (merge-pathnames *data-repository* file-name )))
     (with-open-file (out out-file :direction :output
                          :if-exists :supersede)

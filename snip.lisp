@@ -1,7 +1,6 @@
 ;;;; snip.lisp
 ;; Background subtraction method C.G Ryan et al 1998
 (in-package :porph-screen)
-
 (defparameter *window* 5 "Default window size for mppc")
 (defparameter *iterations* 50 "Default number of iterations for mppc-do")
 
@@ -54,7 +53,7 @@ gnuplot> plot for [IDX=start:end:step] 'file-name' index IDX u 1:2 title columnh
   (terpri stream))
 
 (defun mppc-to-file (spectra-object &optional (w *window*) (n *iterations*) )
-  "gnuplot> plot for [IDX=0:50:10] 'mppc_5' index IDX u 1:2 title columnheader(1)
+  "gnuplot> plot for [IDX=0:50:10] 'mppc_5' index IDX u 1:2 title columnheader(1)"
   (let ((file-name (concatenate 'string \"mppc_\" (write-to-string w)))
         (z-list (ab spectra-object))
         (x-list (nm spectra-object)))
@@ -63,7 +62,7 @@ gnuplot> plot for [IDX=start:end:step] 'file-name' index IDX u 1:2 title columnh
       (do ((count 0 (1+ count))
            (new-list z-list (mppc new-list w)))
           ((equal count n) new-list)
-        (print-spectra new-list x-list out count))))")
+        (print-spectra new-list x-list out count)))))
 
 (defun background-substraction (spectra-object)
   (let* ((ab (ab spectra-object))

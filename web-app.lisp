@@ -187,6 +187,7 @@
   (let ((alop (hunchentoot:post-parameters*)))
 ;;    (setf *alop* alop)
     (process-form *spectra* alop))
+  (mapcar #'delete-file (directory (concatenate 'string *data-repository* "/*.png")))
   (plot-data *spectra*)
   (redirect "/plots"))
 
@@ -260,6 +261,7 @@
                        (:td (str (first result)))
                        (:td (str (second result)))))
               (:img :src plot-name :alt "plot here"))))))))))
+
 
 ;;(publish-static-content)
 ;;(start-server 8085)

@@ -2,16 +2,9 @@
 
 (in-package :porph-screen)
 
-;;TODO Clean-up the graphs after the report generation
-;; (mapcar #'delete-file (directory (concatenate 'string *data-repository* "/*.png"))
 ;;TODO Add declarations where needed
-;;TODO Better baseline algorithm - two points on same side?
-;;STARTED Create a printable report
 ;;TODO Connect to mysql a database
-;;TODO Replace structures with objects and methods
-;;   - Change the fecal sample table as part of this change
 ;;TODO Use vectors for the abs and nm data
-;;TODO Improve the base-line detection algorithm
 
 ;;; "porph-screen" goes here. Hacks and glory await!
 

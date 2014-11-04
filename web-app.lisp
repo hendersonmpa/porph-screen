@@ -191,7 +191,6 @@
   (plot-data *spectra*)
   (redirect "/plots"))
 
-
 (hunchentoot:define-easy-handler (plots :uri "/plots") ()
   (let ((spectra-list (los *spectra*)))
     (standard-page (:title "Absorbance Spectra")
@@ -236,15 +235,18 @@
                 (declare (ignore sec))
                 (format nil "~d-~2,'0d-~2,'0d ~2,'0d:~2,'0d" year mon date hour min)))
         (spectra-list (los *spectra*)))
-    (results-csv *spectra*)
-;;    (print-spectra-list *spectra*)
+    ;;(results-csv *spectra*)
+    ;;(print-spectra-list *spectra*)
+    ;; TODO: Recreate the *spectra object after calling classify-spectra
     (standard-page (:title "Porphyrin Screen")
       (:h2 (format t "Porphyrin Screen Results Report ~A" time))
       (:ol
        (dolist (spectra spectra-list)
-         (let* ((id (id spectra))
+         (let* ((spectra (classify-spectra spectra))
+                (id (id spectra))
                 (matrix (string-capitalize (matrix spectra)))
-                (result (classify-spectra spectra))
+                (result (result spectra))
+                (conc (concentration spectra))
                 (plot-name  (concatenate 'string  "/data/" id ".png")))
            (cl-who:htm
             (:li
@@ -258,10 +260,9 @@
                       (:tr
                        (:td (str id))
                        (:td (str matrix))
-                       (:td (str (first result)))
-                       (:td (str (second result)))))
+                       (:td (str conc))
+                       (:td (str result))))
               (:img :src plot-name :alt "plot here"))))))))))
-
 
 ;;(publish-static-content)
 ;;(start-server 8085)

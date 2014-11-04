@@ -46,10 +46,10 @@
    (matrix :initform "fecal")))
 
 ;;; Data Management
-(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
-;;(defparameter *test-file* "/home/mpah/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
-(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
-;;(defparameter *data-repository* "/home/mpah/lisp/site/porph-screen/data/")
+;;(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
+(defparameter *test-file* "/home/mpah/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
+;;(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
+(defparameter *data-repository* "/home/mpah/lisp/site/porph-screen/data/")
 (defparameter *data-pathname* nil "The local name of the raw data file")
 
 ;; (defun clean-up (file-path)
@@ -138,18 +138,16 @@
           ((string= matrix "fecal")
            (make-fecal-spectra-list ids rotated-data)))))
 
-;;(parse-data2 "/home/mpah/lisp/site/porph-screen/data/UPORS_2014-09-15.csv")
-
 (defun build-spectra-list (file-path matrix)
-  "Master function to create a list of spectra structs: from csv file and sample matrix choice"
+  "Master function to create a list of spectra objects: from csv file and sample matrix choice"
   (let ((spectra-list (parse-data file-path matrix))
         (accum nil))
     (dolist (spectra spectra-list (cond ((string= matrix "urine")
                                          (make-instance 'urine-spectra-list
-                                                        :los accum))
+                                                        :los (reverse accum)))
                                         ((string= matrix "fecal")
                                          (make-instance 'fecal-spectra-list
-                                                        :los accum))))
+                                                        :los (reverse accum)))))
       (setf (net-ab spectra) (find-net-ab spectra))
       (setf (matrix spectra) matrix)
       (push spectra accum))))
@@ -167,11 +165,8 @@
   (declare (ignore dil))
     (setf (vol s) amount))
 
-(defparameter *urine-constant* 1.1097)
-(defparameter *fecal-constant* 14.85)
-
-;; Fecal: Net-Abs * 14.85/Weight of sample = “X” nmol/g wet feces
-;; Urine: Net-Abs * 1.1097 * dil * vol = nmol/d
+(defparameter *urine-constant* 1.1097 "Net-Abs * 1.1097 * dil * vol = nmol/d")
+(defparameter *fecal-constant* 14.85 "Net-Abs * 14.85/Weight of sample = “X” nmol/g wet feces")
 
 (defgeneric calculate-concentration (spectra)
   (:documentation
@@ -204,17 +199,18 @@ Return concentration and class in a list"))
 (defmethod classify-spectra ((s urine-spectra))
   (calculate-concentration s)
   (let ((conc (concentration s)))
-    (cond ((and (>= conc -10) (< conc 60))(list conc "Normal"))
-          ((and (>= conc 60) (<= conc 100))(list conc "Borderline"))
-          ((> conc 100)(list conc "Elevated"))
-          (t (list conc "Interference?")))))
+    (cond ((and (>= conc -10) (< conc 60))(setf (result s) "Normal") s)
+          ((and (>= conc 60) (<= conc 100))(setf (result s) "Borderline") s)
+          ((> conc 100)(setf (result s) "Elevated") s)
+          (t (setf (result s) "Interference") s))))
 
 (defmethod classify-spectra ((s fecal-spectra))
   (calculate-concentration s)
   (let ((conc (concentration s)))
-    (cond ((and (>= conc -10) (<= conc 28))(list conc "Normal"))
-          ((> conc 28) (list conc "Elevated"))
-          (t (list conc "Interference?")))))
+    (cond ((and (>= conc -10) (<= conc 28))
+           (setf (result s) "Normal") s)
+          ((> conc 28) (setf (result s) "Elevated") s)
+          (t (setf (result s) "Interference") s))))
 
 ;; (defparameter *spectra* (complete-spectra *test-file*))
 ;; Create a method to formate spectra output
@@ -224,11 +220,10 @@ Return concentration and class in a list"))
 
 (defmethod print-results ((s spectra) strm)
   (with-accessors ((i id)
-                   (m matrix)) s
-    (let* ((results-list (classify-spectra s))
-           (conc (first results-list))
-           (result (second results-list)))
-      (format strm "~A,~A,~A,~A~%" i m conc result))))
+                   (m matrix)
+                   (c concentration)
+                   (r result)) s
+          (format strm "~A,~A,~A,~A~%" i m c r)))
 
 (defun results-csv (spectra-list-object &optional (data-pathname *data-pathname*))
   "Create a csv file of the results"

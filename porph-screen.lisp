@@ -14,24 +14,80 @@
 ;; (defstruct point "Cartesian co-ordinates" x y )
 ;(defstruct triangle "The three points in an absorbance curve" base1 peak base2)
 
-(defclass spectra ()
-    ((id :initarg :id :accessor id)
-     (nm :initarg :nm :accessor nm)
-     (ab :initarg :ab :accessor ab)
-     (bkgd :initarg :bkgd :accessor bkgd)
-     (net-ab :initarg :net-ab :accessor net-ab)
-     (matrix :initarg :matrix :accessor matrix)
-     (concentration :initarg :concentration :accessor concentration)
-     (result :initarg :result :accessor result)))
+(clsql:def-view-class spectra ()
+  ((uid
+    :db-kind :key
+    :db-constraints :not-null
+    :initarg :uid
+    :type (string 100)
+    :accessor id)
+   (id
+    :initarg :id
+    :type (string 30)
+    :accessor id)
+   (nm
+    :initarg :nm
+    :type list
+    :accessor nm)
+   (ab
+    :initarg :ab
+    :type list
+    :accessor ab)
+   (bkgd
+    :initarg :bkgd
+    :type list
+    :accessor bkgd)
+   (net-ab
+    :initarg :net-ab
+    :type float
+    :accessor net-ab)
+   (matrix
+    :initarg :matrix
+    :type (sting 10)
+    :accessor matrix)
+   (vol
+    :initarg :vol
+    :type integer
+    :accessor vol)
+   (concentration
+    :initarg :concentration
+    :type integer
+    :accessor concentration)
+   (result
+    :initarg :result
+    :type (string 15)
+    :accessor result)))
 
-(defclass urine-spectra (spectra)
-    ((matrix :initform "urine")
-     (vol :initarg :vol :accessor vol)
-     (dil :initarg :dil :accessor dil)))
+(clsql:def-view-class urine-spectra (spectra)
+  ((matrix
+    :initform "urine")
+   (dil
+    :initarg :dil
+    :type float
+    :accessor dil)))
 
-(defclass fecal-spectra (spectra)
-    ((matrix :initform "fecal")
-     (vol :initarg :mass :accessor vol)))
+(clsql:def-view-class fecal-spectra (spectra)
+  ((matrix
+    :initform "fecal")))
+
+;; (defclass spectra ()
+;;     ((id :initarg :id :accessor id)
+;;      (nm :initarg :nm :accessor nm)
+;;      (ab :initarg :ab :accessor ab)
+;;      (bkgd :initarg :bkgd :accessor bkgd)
+;;      (net-ab :initarg :net-ab :accessor net-ab)
+;;      (matrix :initarg :matrix :accessor matrix)
+;;      (concentration :initarg :concentration :accessor concentration)
+;;      (result :initarg :result :accessor result)))
+
+;; (defclass urine-spectra (spectra)
+;;     ((matrix :initform "urine")
+;;      (vol :initarg :vol :accessor vol)
+;;      (dil :initarg :dil :accessor dil)))
+
+;; (defclass fecal-spectra (spectra)
+;;     ((matrix :initform "fecal")
+;;      (vol :initarg :mass :accessor vol)))
 
 (defclass spectra-list ()
   ((los :initarg :los :accessor los)
@@ -98,12 +154,14 @@
 
 (defun make-urine-spectra (id nm ab)
   (make-instance 'urine-spectra
+                 :uid (concatenate 'string id "-" (write-to-string (local-time:now)))
                  :id id
                  :nm nm
                  :ab ab))
 
 (defun make-fecal-spectra (id nm ab)
   (make-instance 'fecal-spectra
+                 :uid (concatenate 'string id "-" (write-to-string (local-time:now)))
                  :id id
                  :nm nm
                  :ab ab))
@@ -165,7 +223,12 @@
   (declare (ignore dil))
     (setf (vol s) amount))
 
-(defparameter *urine-constant* 1.1097 "Net-Abs * 1.1097 * dil * vol = nmol/d")
+                                        ;;(defparameter *urine-constant* 1.1097 "Net-Abs * 1.1097 * dil * vol = nmol/d")
+
+(defparameter *urine-constant* (* 500 0.0021)
+  "Milimolar extinction coeffient * (volume of acid + volume of urine in Litres)
+Net-Abs * urine-constant * dil * vol = nmol/d")
+
 (defparameter *fecal-constant* 14.85 "Net-Abs * 14.85/Weight of sample = “X” nmol/g wet feces")
 
 (defgeneric calculate-concentration (spectra)
@@ -235,6 +298,26 @@ Return concentration and class in a list"))
                          :if-exists :supersede)
       (dolist (spectra spectra-list)
         (print-results spectra out)))))
+
+;; Create tables from our view classes
+;; Only the first time !!!!!
+;; (defun create-tables (&optional (location *data-repository*)
+;;                         (name "porph_screen.sqlite"))
+;;   (let ((db-connection (list (concatenate 'string location name))))
+;;     (clsql:with-database (db db-connection
+;;                              :database-type :sqlite3)
+;;       (clsql:create-view-from-class 'urine-spectra :database db)
+;;       (clsql:create-view-from-class 'fecal-spectra :database db))))
+
+(defun update-tables (spectra-list-object &optional (location *data-repository*)
+                        (name "porph_screen.sqlite"))
+  "Update database with spectra-objects"
+  (let ((db-connection (list (concatenate 'string location name)))
+        (spectra-list (los spectra-list-object)))
+    (clsql:with-database (db db-connection
+                             :database-type :sqlite3)
+      (dolist (spectra spectra-list)
+        (clsql:update-records-from-instance spectra :database db)))))
 
 ;; (defun print-spectra-list (spectra-list &optional (data-pathname *data-pathname*))
 ;;   "Print the spectra list to file"

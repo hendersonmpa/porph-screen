@@ -31,6 +31,9 @@
           (last hunchentoot:*dispatch-table*))
     (setf *my-acceptor* nil)))
 
+(defun restart-server ()
+  (stop-server)
+  (start-server))
 ;; Create our pages
 (setf (html-mode) :html5)
 

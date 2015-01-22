@@ -9,7 +9,9 @@
                :parse-number
                :cl-who
                :hunchentoot
-               :cl-ppcre)
+               :cl-ppcre
+               :clsql
+               :local-time)
   :components ((:file "package")
 ;               (:file "find-points")
                (:file "snip")

@@ -120,7 +120,7 @@
       (:table (:tr
                (:th "ID")
                (:th "Volume (mL)")
-               (:th "Acid (mL)"))
+               (:th "Dilution Factor"))
               (dolist (spectra spectra-list)
                 (let ((id (id spectra)))
                   (cl-who:htm
@@ -240,32 +240,32 @@
         (spectra-list (los *spectra*)))
     ;;(results-csv *spectra*)
     ;;(print-spectra-list *spectra*)
-    ;; TODO: Recreate the *spectra object after calling classify-spectra
-    (standard-page (:title "Porphyrin Screen")
-      (:h2 (format t "Porphyrin Screen Results Report ~A" time))
-      (:ol
-       (dolist (spectra spectra-list)
-         (let* ((spectra (classify-spectra spectra))
-                (id (id spectra))
-                (matrix (string-capitalize (matrix spectra)))
-                (result (result spectra))
-                (conc (concentration spectra))
-                (plot-name  (concatenate 'string  "/data/" id ".png")))
-           (cl-who:htm
-            (:li
-             (:section
-              (:h3 (format t "~A Porphyrin Screen Sample: ~A" matrix id))
-              (:table (:tr
-                       (:th "Sample ID" )
-                       (:th "Matrix" )
-                       (:th "nmol/L")
-                       (:th "Result"))
-                      (:tr
-                       (:td (str id))
-                       (:td (str matrix))
-                       (:td (str conc))
-                       (:td (str result))))
-              (:img :src plot-name :alt "plot here"))))))))))
+    (prog1 (standard-page (:title "Porphyrin Screen")
+             (:h2 (format t "Porphyrin Screen Results Report ~A" time))
+             (:ol
+              (dolist (spectra spectra-list)
+                (let* ((spectra (classify-spectra spectra))
+                       (id (id spectra))
+                       (matrix (string-capitalize (matrix spectra)))
+                       (result (result spectra))
+                       (conc (concentration spectra))
+                       (plot-name  (concatenate 'string  "/data/" id ".png")))
+                  (cl-who:htm
+                   (:li
+                    (:section
+                     (:h3 (format t "~A Porphyrin Screen Sample: ~A" matrix id))
+                     (:table (:tr
+                              (:th "Sample ID" )
+                              (:th "Matrix" )
+                              (:th "nmol/L")
+                              (:th "Result"))
+                             (:tr
+                              (:td (str id))
+                              (:td (str matrix))
+                              (:td (str conc))
+                              (:td (str result))))
+                     (:img :src plot-name :alt "plot here"))))))))
+      (update-tables *spectra*))))
 
 ;;(publish-static-content)
 ;;(start-server 8085)

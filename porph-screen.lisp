@@ -223,35 +223,34 @@
   (declare (ignore dil))
     (setf (vol s) amount))
 
-                                        ;;(defparameter *urine-constant* 1.1097 "Net-Abs * 1.1097 * dil * vol = nmol/d")
-
-(defparameter *urine-constant* (* 500 0.0021)
-  "Milimolar extinction coeffient * (volume of acid + volume of urine in Litres)
-Net-Abs * urine-constant * dil * vol = nmol/d")
+(defparameter *urine-constant* 500 "(Net-Abs/Milimolar extinction coefficient * dil) * volume of urine in mL")
 
 (defparameter *fecal-constant* 14.85 "Net-Abs * 14.85/Weight of sample = “X” nmol/g wet feces")
 
-(defgeneric calculate-concentration (spectra)
+(defgeneric calculate-concentration (spectra constant)
   (:documentation
    "Calculate the approximate concentration of porphyrins in the sample"))
 
-(defmethod calculate-concentration ((s urine-spectra))
+(defmethod calculate-concentration ((s urine-spectra) &optional (constant *urine-constant*))
+  "mmol/L * volume in ml/d * 10^3 = nmol/d"
   (with-accessors ((v vol)
                    (d dil)
                    (n net-ab)) s
-    (setf (concentration s) (round (* n *urine-constant* d v)))))
+    (let ((conc-per-day (* (/ n constant) dil (expt 10 3)))))
+    (setf (concentration s) (round conc-per-day))))
 
-(defmethod calculate-concentration ((s fecal-spectra))
+(defmethod calculate-concentration ((s fecal-spectra) &optional (constant *fecal-constant*))
   (with-accessors ((v vol)
                    (n net-ab)) s
-    (setf (concentration s) (round (/ (* n *fecal-constant*) (/ v 1000))))))
+    (let ((conc-per-day (/ (* n constant) (/ v 1000)) )))
+    (setf (concentration s) (round conc-per-day))))
 
-;; Normal if concentration <60  nmol/d for 24 h collections
-;; or <60 nmol/L for random specimens.
-;; Borderline if concentration is between 60 and 100 nmol/d or nmol/L.
+;; Normal if concentration <110  nmol/d for 24 h collections
+;; or <110 nmol/L for random specimens.
+;; Borderline if concentration is between 110 and 200 nmol/d or nmol/L.
 ;; Append the footnote POR 3 which expands to “Quantitation to follow”.  Test request a
 ;; quantitative urine porphyrin.
-;; Elevated if concentration is >100 nmol/d or nmol/L.  Append the footnote POR 3.
+;; Elevated if concentration is >200 nmol/d or nmol/L.  Append the footnote POR 3.
 ;; Test request a quantitative urine porphyrin.
 
 (defgeneric classify-spectra (spectra)
@@ -262,9 +261,9 @@ Return concentration and class in a list"))
 (defmethod classify-spectra ((s urine-spectra))
   (calculate-concentration s)
   (let ((conc (concentration s)))
-    (cond ((and (>= conc -10) (< conc 60))(setf (result s) "Normal") s)
-          ((and (>= conc 60) (<= conc 100))(setf (result s) "Borderline") s)
-          ((> conc 100)(setf (result s) "Elevated") s)
+    (cond ((and (>= conc -10) (< conc 110))(setf (result s) "Normal") s)
+          ((and (>= conc 110) (<= conc 200))(setf (result s) "Borderline") s)
+          ((> conc 200)(setf (result s) "Elevated") s)
           (t (setf (result s) "Interference") s))))
 
 (defmethod classify-spectra ((s fecal-spectra))

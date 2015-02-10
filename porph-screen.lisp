@@ -1,18 +1,13 @@
 ;;;; porph-screen.lisp
 
 (in-package :porph-screen)
-
-;;TODO Add declarations where needed
-;;TODO Connect to mysql a database
-;;TODO Use vectors for the abs and nm data
-
 ;;; "porph-screen" goes here. Hacks and glory await!
 
 ;; Data Structures
 ;; (defstruct spectra "Key information about the spectra"
 ;;            id nm abs bkgd net-abs matrix vol dil)
 ;; (defstruct point "Cartesian co-ordinates" x y )
-;(defstruct triangle "The three points in an absorbance curve" base1 peak base2)
+;; (defstruct triangle "The three points in an absorbance curve" base1 peak base2)
 
 (clsql:def-view-class spectra ()
   ((uid
@@ -47,7 +42,7 @@
     :accessor matrix)
    (vol
     :initarg :vol
-    :type integer
+    :type float
     :accessor vol)
    (concentration
     :initarg :concentration
@@ -107,18 +102,6 @@
 ;;(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
 (defparameter *data-repository* "/home/mpah/lisp/site/porph-screen/data/")
 (defparameter *data-pathname* nil "The local name of the raw data file")
-
-;; (defun clean-up (file-path)
-;;   (let ((strm (make-array 0
-;;                          :element-type 'character
-;;                          :adjustable t
-;;                          :fill-pointer 0)))
-;;     (with-open-file (in file-path :direction :input)
-;;       (loop for line = (read-line in nil 'eof)
-;;          until (eq line 'eof)
-;;          do (let ((new-line (string-trim '(#\, #\Space #\Tab #\Newline #\Return) line)))
-;;               (format strm "~A~%" new-line))))
-;;     (make-string-input-stream strm)))
 
 (defun slurp-stream (stream)
   (let ((seq (make-string (file-length stream))))
@@ -227,7 +210,7 @@
 
 (defparameter *fecal-constant* 14.85 "Net-Abs * 14.85/Weight of sample = “X” nmol/g wet feces")
 
-(defgeneric calculate-concentration (spectra constant)
+(defgeneric calculate-concentration (spectra &optional constant)
   (:documentation
    "Calculate the approximate concentration of porphyrins in the sample"))
 
@@ -236,14 +219,14 @@
   (with-accessors ((v vol)
                    (d dil)
                    (n net-ab)) s
-    (let ((conc-per-day (* (/ n constant) dil (expt 10 3)))))
-    (setf (concentration s) (round conc-per-day))))
+    (let ((conc-per-day (* (/ n constant) d v (expt 10 3))))
+      (setf (concentration s) (round conc-per-day)))))
 
 (defmethod calculate-concentration ((s fecal-spectra) &optional (constant *fecal-constant*))
   (with-accessors ((v vol)
                    (n net-ab)) s
-    (let ((conc-per-day (/ (* n constant) (/ v 1000)) )))
-    (setf (concentration s) (round conc-per-day))))
+    (let ((conc-per-day (/ (* n constant) v)))
+      (setf (concentration s) (round conc-per-day)))))
 
 ;; Normal if concentration <110  nmol/d for 24 h collections
 ;; or <110 nmol/L for random specimens.

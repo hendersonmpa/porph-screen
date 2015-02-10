@@ -138,7 +138,7 @@
         (*standard-output* nil :prologue nil :indent t)
       (:table (:tr
                (:th "ID" )
-               (:th "Weight (mg)"))
+               (:th "Weight (g)"))
               (dolist (spectra spectra-list)
                 (let ((id (id spectra)))
                   (cl-who:htm
@@ -146,7 +146,7 @@
                     (:td (:input :type "text" :name "id" :value (str id) :class "txt"
                                  :readonly "readonly"))
                     (:td (:input :type "text" :name "vol"
-                                 :value 25 :class "txt"))))))))))
+                                 :value 0.05 :class "txt"))))))))))
 
 (define-easy-handler (upload :uri "/upload") (spectra-csv matrix)
   (cond ((null spectra-csv) (redirect "/select"))
@@ -168,6 +168,9 @@
 ;;<input type="hidden" name="hiddenfield" value="text" />
 ;;<input type="text" name="rofield" value="text" readonly="readonly" />
 
+(defun string-to-float (str)
+  (float (pn:parse-number str)))
+
 (defgeneric process-form (spectra-list parameters-a-list)
   (:documentation "Process the a-lists from the sample table"))
 
@@ -176,15 +179,15 @@
     (loop for (id vol dil) on parameters-a-list by #'cdddr
        do (loop for spectra in spectra-list
              if (string= (id spectra) (cdr id))
-             do (sample-size-info spectra (parse-number (cdr vol))
-                                  (parse-number (cdr dil)))))))
+             do (sample-size-info spectra (string-to-float (cdr vol))
+                                  (string-to-float (cdr dil)))))))
 
 (defmethod process-form ((s fecal-spectra-list) parameters-a-list)
   (let ((spectra-list (los s)))
     (loop for (id vol) on parameters-a-list by #'cddr
        do (loop for spectra in spectra-list
              if (string= (id spectra) (cdr id))
-             do (sample-size-info spectra (parse-number (cdr vol)))))))
+             do (sample-size-info spectra (string-to-float (cdr vol)))))))
 
 (hunchentoot:define-easy-handler (info :uri "/info") ()
   (let ((alop (hunchentoot:post-parameters*)))

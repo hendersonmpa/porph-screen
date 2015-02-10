@@ -19,3 +19,5 @@
                (:file "plot")
                (:file "porph-screen")
                (:file "web-app")))
+
+(rename-package :parse-number :parse-number '(:pn))

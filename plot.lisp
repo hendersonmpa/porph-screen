@@ -40,7 +40,7 @@
     (format strm "set xlabel 'Wavelength'~C" #\Linefeed)
     (format strm "set ylabel 'Absorbance'~C" #\Linefeed)
     ;(formula-string strm spectra-struct)
-    (format strm "plot '-' u 1:2 linetype 1, '-' u 1:2 linetype 2 ~C" #\Linefeed)
+    (format strm "plot '-' u 1:2 linetype 1 title 'data', '-' u 1:2 linetype 2 title 'background' ~C" #\Linefeed)
     (format-data-set strm spectra-object)
     (format strm "e~C" #\Linefeed)
     (format strm "set output~C" #\Linefeed)

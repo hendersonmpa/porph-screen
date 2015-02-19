@@ -1,7 +1,19 @@
 ;;;; porph-screen.lisp
 
+;;TODO: Add volume/weight and acid etc to the report
+;;TODO: Allow tech to toggle interference
+
 (in-package :porph-screen)
 ;;; "porph-screen" goes here. Hacks and glory await!
+
+;;; Data Management
+;;(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
+(defparameter *data-repository* "/home/mpah/Data/")
+(defparameter *test-file* (concatenate 'string *data-repository* "FPORS 2014-09-04.csv"))
+(defparameter *db-file* (concatenate 'string *data-repository* "porph_screen.sqlite"))
+;;(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
+(defparameter *data-pathname* nil "The local name of the raw data file")
+
 
 ;; Data Structures
 ;; (defstruct spectra "Key information about the spectra"
@@ -51,11 +63,20 @@
    (result
     :initarg :result
     :type (string 15)
-    :accessor result)))
+    :accessor result)
+   (interference
+    :initarg :interference
+    :type (string 1)
+    :accessor interference)))
 
 (clsql:def-view-class urine-spectra (spectra)
   ((matrix
-    :initform "urine")
+    :initform "urine"
+    :type (string 10))
+   (acid
+    :initarg :acid
+    :type float
+    :accessor acid)
    (dil
     :initarg :dil
     :type float
@@ -63,7 +84,8 @@
 
 (clsql:def-view-class fecal-spectra (spectra)
   ((matrix
-    :initform "fecal")))
+    :initform "fecal"
+    :type (string 10))))
 
 ;; (defclass spectra ()
 ;;     ((id :initarg :id :accessor id)
@@ -96,13 +118,7 @@
   ((los :initarg :los :accessor los)
    (matrix :initform "fecal")))
 
-;;; Data Management
-;;(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
-(defparameter *test-file* "/home/mpah/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
-;;(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
-(defparameter *data-repository* "/home/mpah/lisp/site/porph-screen/data/")
-(defparameter *data-pathname* nil "The local name of the raw data file")
-
+;; Data Processing
 (defun slurp-stream (stream)
   (let ((seq (make-string (file-length stream))))
     (read-sequence seq stream)
@@ -193,17 +209,19 @@
       (setf (matrix spectra) matrix)
       (push spectra accum))))
 
-(defgeneric sample-size-info (spectra &optional amount dil)
+(defgeneric sample-size-info (spectra &optional amount acid dil)
   (:documentation
    "Add information about sample mass or volume for concentration
    calculations"))
 
-(defmethod sample-size-info ((s urine-spectra) &optional amount dil)
+(defmethod sample-size-info ((s urine-spectra) &optional amount acid dil)
   (setf (vol s) amount)
+  (setf (acid s) acid)
   (setf (dil s) dil))
 
-(defmethod sample-size-info ((s fecal-spectra) &optional amount dil)
-  (declare (ignore dil))
+(defmethod sample-size-info ((s fecal-spectra) &optional amount acid dil)
+  (declare (ignore dil)
+           (ignore acid))
     (setf (vol s) amount))
 
 (defparameter *urine-constant* 500 "(Net-Abs/Milimolar extinction coefficient * dil) * volume of urine in mL")
@@ -214,12 +232,16 @@
   (:documentation
    "Calculate the approximate concentration of porphyrins in the sample"))
 
+;; 2 ml of patient urine used in every assay
+;; the effect of a acid dilution is take into account via
+;;(/ (+ 2000 a) 2000) d v (expt 10 3)
 (defmethod calculate-concentration ((s urine-spectra) &optional (constant *urine-constant*))
-  "mmol/L * volume in ml/d * 10^3 = nmol/d"
+  "mmol/L * volume in ml/d * 10^3  * dilution factor = nmol/d"
   (with-accessors ((v vol)
+                   (a acid)
                    (d dil)
                    (n net-ab)) s
-    (let ((conc-per-day (* (/ n constant) d v (expt 10 3))))
+    (let ((conc-per-day (* (/ n constant) (/ (+ 2000 a) 2000) v (expt 10 3) d)))
       (setf (concentration s) (round conc-per-day)))))
 
 (defmethod calculate-concentration ((s fecal-spectra) &optional (constant *fecal-constant*))
@@ -283,23 +305,22 @@ Return concentration and class in a list"))
 
 ;; Create tables from our view classes
 ;; Only the first time !!!!!
-;; (defun create-tables (&optional (location *data-repository*)
-;;                         (name "porph_screen.sqlite"))
-;;   (let ((db-connection (list (concatenate 'string location name))))
-;;     (clsql:with-database (db db-connection
-;;                              :database-type :sqlite3)
-;;       (clsql:create-view-from-class 'urine-spectra :database db)
-;;       (clsql:create-view-from-class 'fecal-spectra :database db))))
+(defun create-tables (&optional (db-file *db-file*))
+  (let ((db-connection (list db-file)))
+    (clsql:with-database (db db-connection
+                             :database-type :sqlite3)
+      (clsql:create-view-from-class 'urine-spectra :database db)
+      (clsql:create-view-from-class 'fecal-spectra :database db))))
 
-(defun update-tables (spectra-list-object &optional (location *data-repository*)
-                        (name "porph_screen.sqlite"))
+(defun update-tables (spectra-list-object &optional (db-file *db-file*))
   "Update database with spectra-objects"
-  (let ((db-connection (list (concatenate 'string location name)))
+  (let ((db-connection (list db-file))
         (spectra-list (los spectra-list-object)))
     (clsql:with-database (db db-connection
                              :database-type :sqlite3)
       (dolist (spectra spectra-list)
         (clsql:update-records-from-instance spectra :database db)))))
+
 
 ;; (defun print-spectra-list (spectra-list &optional (data-pathname *data-pathname*))
 ;;   "Print the spectra list to file"

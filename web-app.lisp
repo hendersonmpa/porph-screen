@@ -1,6 +1,5 @@
 ;;;; web-app.lisp
 (in-package :porph-screen)
-
 ;; Web server - Hunchentoot
 
 (defparameter *spectra* nil "This will hold a list of spectra structs")
@@ -18,7 +17,7 @@
               "/static/" "~/lisp/site/porph-screen/static/")
              hunchentoot:*dispatch-table* :test #'equal)
     (pushnew (hunchentoot:create-folder-dispatcher-and-handler
-              "/data/" "~/lisp/site/porph-screen/data/")
+              "/data/" "~/Data/")
              hunchentoot:*dispatch-table* :test #'equal)
     (setf *my-acceptor*
           (hunchentoot:start (make-instance
@@ -80,7 +79,7 @@
             ,@body
             (:footer :role "contentinfo"
              (:img :src "/static/LISP_logo.svg"
-                   :alt "Lisp Alien"
+                   :alt "Lisp Logo"
                    :class "stamp")
              (:small (:p "Created with Common Lisp")
                      (:p "by Matthew P.A. Henderson")
@@ -92,7 +91,7 @@
     (:h3 "File Upload for Porphyrin Screen Data")
     (:p "Select the .csv file for this analysis")
     (:form :method :post :enctype "multipart/form-data"
-           :action "upload" ;; What happens when you submit
+           :action "sample-table" ;; What happens when you submit
            (:p "Select the file: "
                (:input :type :file
                        :name "spectra-csv" :class "btn"))
@@ -101,7 +100,7 @@
                       (:legend "Sample Matrix:")
                       (:p :class "row"
                           (:input :type :radio :id "sample-urine"
-                                  :name "matrix" :value "urine")
+                                  :name "matrix" :value "urine" :checked "checked")
                           (:label :for "sample-urine" "Urine"))
                       (:p :class "row"
                           (:input :type :radio :id "sample-fecal"
@@ -109,17 +108,17 @@
                           (:label :for "sample-fecal" "Fecal")))
            (:p (:input :type :submit :value "Submit" :class "btn")))))
 
-
-(defgeneric sample-table (spectra-list)
+(defgeneric make-sample-table (spectra-list)
   (:documentation "Sample table for matrix"))
 
-(defmethod sample-table ((s urine-spectra-list))
+(defmethod make-sample-table ((s urine-spectra-list))
   (let ((spectra-list (los s)))
     (who:with-html-output
         (*standard-output* nil :prologue nil :indent t)
       (:table (:tr
                (:th "ID")
-               (:th "Volume (mL)")
+               (:th "Sample (mL)")
+               (:th "Acid (uL)")
                (:th "Dilution Factor"))
               (dolist (spectra spectra-list)
                 (let ((id (id spectra)))
@@ -129,16 +128,44 @@
                                  :readonly "readonly"))
                     (:td (:input :type "text":name (format nil "~A-vol" id )
                                  :value 1000 :class "txt"))
+                    (:td (:input :type "text" :name (format nil "~A-acid" id )
+                                 :value 100 :class "txt"))
                     (:td (:input :type "text" :name (format nil "~A-dil" id )
-                                 :value 1.05 :class "txt"))))))))))
+                                 :value 1 :class "txt"))))))))))
 
-(defmethod sample-table ((s fecal-spectra-list))
+;; (defun validate-form-js (fun-name form-names)
+;;   (labels ((function-template (&rest body)
+;;              `(parenscript:ps (defun ,fun-name (evt)
+;;                                 (when  ,@body
+;;                                   (chain evt (prevent-default))
+;;                                   (alert "please enter a volume")))))
+;;            (add-conditions (form-names)
+;;              (let ((accum '(or)))
+;;                (dolist (n form-names (function-template (reverse accum)))
+;;                  (push `(= (@ info-list ,n value) "") accum)))))
+;;     (eval (add-conditions form-names))))
+
+;; (parenscript:ps ; client side validation
+;;   (defvar info-list nil)
+;;   (defun validate-volume (evt)
+;;     (when (= (@ info-list vol value) "")
+;;       (chain evt (prevent-default))
+;;       (alert "Please enter a volume.")))
+;;   (defun init ()
+;;     (setf info-list
+;;           (chain document
+;;                  (get-element-by-id "infoList")))
+;;     (chain info-list
+;;            (add-event-listener "submit" validate-volume false)))
+;;   (setf (chain window onload) init))
+
+(defmethod make-sample-table ((s fecal-spectra-list))
   (let ((spectra-list (los s)))
     (who:with-html-output
         (*standard-output* nil :prologue nil :indent t)
       (:table (:tr
                (:th "ID" )
-               (:th "Weight (g)"))
+               (:th "Weight (mg)"))
               (dolist (spectra spectra-list)
                 (let ((id (id spectra)))
                   (cl-who:htm
@@ -146,58 +173,80 @@
                     (:td (:input :type "text" :name "id" :value (str id) :class "txt"
                                  :readonly "readonly"))
                     (:td (:input :type "text" :name "vol"
-                                 :value 0.05 :class "txt"))))))))))
+                                 :value 25 :class "txt"))))))))))
 
-(define-easy-handler (upload :uri "/upload") (spectra-csv matrix)
+(define-easy-handler (sample-table :uri "/sample-table") (spectra-csv matrix)
   (cond ((null spectra-csv) (redirect "/select"))
         (t (let ((file-name (concatenate 'string *data-repository* (cadr spectra-csv))))
-           (rename-file (car spectra-csv) file-name)
-           (setf *spectra* (build-spectra-list file-name matrix))
-           (setf *data-pathname* (pathname file-name))
-           (standard-page (:title "Upload Complete")
-             (:h3 "The file has been uploaded to the server")
-             (:p "File location: " (str file-name) )
-             (:p "Sample type: " (string-capitalize (str matrix)))
-             (:h3 "Please indicate sample volume and the volume of acid added")
-             (:form :action "/info" :method "post" :id "info-list"
-                    (:ol
-                     (sample-table *spectra*))
-                    (:input :type :submit :value "Submit" :class "btn")))))))
+             (rename-file (car spectra-csv) file-name)
+             (setf *spectra* (build-spectra-list file-name matrix))
+             (setf *data-pathname* (pathname file-name))
+             (standard-page (:title "Upload Complete")
+               (:h3 "The file has been uploaded to the server")
+               (:p "File location: " (str file-name) )
+               (:p "Sample type: " (string-capitalize (str matrix)))
+               (:h3 "Please indicate sample volume and the volume of acid added")
+               (:form :action "/plots" :method "post" :id "infoList"
+                      (:ol
+                       (make-sample-table *spectra*))
+                      (:input :type "submit" :value "Submit" :class "btn")))))))
+
+
 
 ;; Changing the form cells
 ;;<input type="hidden" name="hiddenfield" value="text" />
 ;;<input type="text" name="rofield" value="text" readonly="readonly" />
 
-(defun string-to-float (str)
-  (float (pn:parse-number str)))
+(hunchentoot:define-easy-handler (bad-input :uri "/bad-input") ()
+  (standard-page (:title "Error")
+    (:h2 "Error in Submitted Sample Table")
+    (:p "Please ensure that all parameters are completed correctly
+    prior to submission")
+    (:p "you can fill-in the table below or navigate back to the previous page")
+    (:form :action "/plots" :method "post" :id "infoList"
+           (:ol
+            (make-sample-table *spectra*))
+           (:input :type "submit" :value "Submit" :class "btn"))))
 
 (defgeneric process-form (spectra-list parameters-a-list)
   (:documentation "Process the a-lists from the sample table"))
 
+(defun process-entry (entry)
+  "read in string entry and convert to float with error checking"
+  (let ((read-entry (handler-case (with-input-from-string (in entry)
+                                    (read in))
+                      (end-of-file () nil))))
+    (if (not (numberp read-entry))
+        (redirect "/bad-input")
+        (float read-entry))))
+
 (defmethod process-form ((s urine-spectra-list) parameters-a-list)
   (let ((spectra-list (los s)))
-    (loop for (id vol dil) on parameters-a-list by #'cdddr
+    (loop for (id vol acid dil) on parameters-a-list by #'cddddr ;; I hope this works
        do (loop for spectra in spectra-list
              if (string= (id spectra) (cdr id))
-             do (sample-size-info spectra (string-to-float (cdr vol))
-                                  (string-to-float (cdr dil)))))))
+             do (sample-size-info spectra (process-entry (cdr vol))
+                                  (process-entry (cdr acid))
+                                  (process-entry (cdr dil)))))))
 
 (defmethod process-form ((s fecal-spectra-list) parameters-a-list)
   (let ((spectra-list (los s)))
     (loop for (id vol) on parameters-a-list by #'cddr
        do (loop for spectra in spectra-list
              if (string= (id spectra) (cdr id))
-             do (sample-size-info spectra (string-to-float (cdr vol)))))))
+             do (sample-size-info spectra (process-entry (cdr vol)))))))
 
-(hunchentoot:define-easy-handler (info :uri "/info") ()
-  (let ((alop (hunchentoot:post-parameters*)))
-;;    (setf *alop* alop)
-    (process-form *spectra* alop))
-  (mapcar #'delete-file (directory (concatenate 'string *data-repository* "/*.png")))
-  (plot-data *spectra*)
-  (redirect "/plots"))
+;; (hunchentoot:define-easy-handler (info :uri "/info") ()
+;;   (let ((alop (hunchentoot:post-parameters*))) ; post-parameters is an a-list of parameters from the sample-table form
+;;     (process-form *spectra* alop))
+;;   (mapcar #'delete-file (directory (concatenate 'string *data-repository* "/*.png")))
+;;   (plot-data *spectra*)
+;;   (redirect "/plots"))
 
 (hunchentoot:define-easy-handler (plots :uri "/plots") ()
+  (process-form *spectra* (hunchentoot:post-parameters*)) ;;post-parameters* is an a-list of parameters-a-list from the sample-table form
+  (mapcar #'delete-file (directory (concatenate 'string *data-repository* "/*.png")))
+  (plot-data *spectra*)
   (let ((spectra-list (los *spectra*)))
     (standard-page (:title "Absorbance Spectra")
       (:h2 "Porphyrin Screen Absorbance Spectra Analysis")
@@ -221,19 +270,6 @@
               (:img :src plot-name :alt "plot goes here")))))))
       (:form :action "/report"
              (:input :type :submit :value "Create Report" :class "btn")))))
-
-;; (hunchentoot:define-easy-handler (update :uri "/update") (id base1-nm peak-nm base2-nm)
-;;   ;; TODO include error handling in case all fields are not completed
-;;   (let* ((spectra (dolist (spectra *spectra*)
-;;                     (when (equalp id (spectra-id spectra)) (return spectra))))
-;;          (base1 (find-nearest-point (parse-integer base1-nm :junk-allowed t) spectra))
-;;          (peak (find-nearest-point (parse-integer peak-nm :junk-allowed t) spectra))
-;;          (base2 (find-nearest-point (parse-integer base2-nm :junk-allowed t) spectra))
-;;         (triangle (make-triangle :base1 base1 :peak peak :base2 base2)))
-;;     (setf (spectra-triangle spectra) triangle)
-;;     (setf (spectra-net-abs spectra) (net-abs spectra))
-;;     (single-plot spectra)
-;;     (redirect (concatenate 'string "/plots#" id))))
 
 (hunchentoot:define-easy-handler (report :uri "/report") ()
   (let ((time (multiple-value-bind (sec min hour date mon year)

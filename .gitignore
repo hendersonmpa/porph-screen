@@ -1,2 +1,9 @@
 /static/reset.css
 /data/*
+/archive/
+/devel/
+/static/.DS_Store
+/static/LISP_logo.svg
+/static/cary-60.jpg
+/static/lisplogo_128.png
+/static/lisplogo_warning2_128.png

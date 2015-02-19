@@ -9,6 +9,7 @@
                :parse-number
                :cl-who
                :hunchentoot
+               :parenscript
                :cl-ppcre
                :clsql
                :local-time)
@@ -19,5 +20,3 @@
                (:file "plot")
                (:file "porph-screen")
                (:file "web-app")))
-
-(rename-package :parse-number :parse-number '(:pn))

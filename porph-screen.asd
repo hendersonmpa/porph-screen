@@ -19,4 +19,5 @@
 ;               (:file "net-abs")
                (:file "plot")
                (:file "porph-screen")
-               (:file "web-app")))
+               (:file "web-app")
+               (:file "comparision")))

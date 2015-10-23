@@ -53,7 +53,7 @@
 
 ;;(interpolate peak base1 base2)
 
-;; (defun net-abs (spectra-struct)
+;; (defun drop-net-abs (spectra-struct)
 ;;   (let* ((triangle (spectra-triangle spectra-struct))
 ;;          (peak (triangle-peak triangle))
 ;;          (base1 (triangle-base1 triangle))

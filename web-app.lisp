@@ -108,31 +108,6 @@
                           (:label :for "sample-fecal" "Fecal")))
            (:p (:input :type :submit :value "Submit" :class "btn")))))
 
-(defgeneric make-sample-table (spectra-list)
-  (:documentation "Sample table for matrix"))
-
-(defmethod make-sample-table ((s urine-spectra-list))
-  (let ((spectra-list (los s)))
-    (who:with-html-output
-        (*standard-output* nil :prologue nil :indent t)
-      (:table (:tr
-               (:th "ID")
-               (:th "Sample (mL)")
-               (:th "Acid (uL)")
-               (:th "Dilution Factor"))
-              (dolist (spectra spectra-list)
-                (let ((id (id spectra)))
-                  (cl-who:htm
-                   (:tr
-                    (:td (:input :type "text":name "id" :value (str id) :class "txt"
-                                 :readonly "readonly"))
-                    (:td (:input :type "text":name (format nil "~A-vol" id )
-                                 :value 1000 :class "txt"))
-                    (:td (:input :type "text" :name (format nil "~A-acid" id )
-                                 :value 100 :class "txt"))
-                    (:td (:input :type "text" :name (format nil "~A-dil" id )
-                                 :value 1 :class "txt"))))))))))
-
 ;; (defun validate-form-js (fun-name form-names)
 ;;   (labels ((function-template (&rest body)
 ;;              `(parenscript:ps (defun ,fun-name (evt)
@@ -159,21 +134,60 @@
 ;;            (add-event-listener "submit" validate-volume false)))
 ;;   (setf (chain window onload) init))
 
-(defmethod make-sample-table ((s fecal-spectra-list))
-  (let ((spectra-list (los s)))
+(defgeneric make-sample-table (spectra-list)
+  (:documentation "Sample table for matrix"))
+
+(defmethod make-sample-table ((s urine-spectra-list))
+  (let ((spectra-list (los s))
+        (count 0))
     (who:with-html-output
         (*standard-output* nil :prologue nil :indent t)
       (:table (:tr
-               (:th "ID" )
-               (:th "Weight (mg)"))
+               (:th "#")
+               (:th "ID")
+               (:th "Specimen Vol (mL)")
+               (:th "Acid Vol (uL)")
+               (:th "Dilution Factor"))
               (dolist (spectra spectra-list)
-                (let ((id (id spectra)))
+                (let ((id (id spectra))
+                      (count (incf count)))
                   (cl-who:htm
                    (:tr
+                    (:td (str count))
+                    (:td (:input :type "text":name "id" :value (str id) :class "txt"
+                                 :readonly "readonly"))
+                    (:td (:input :type "number" :title "Enter the volume" :name "vol"
+                                        ;(format nil "~A-vol" id )
+                                 :value 1000 :class "txt" :required "required"))
+                    (:td (:input :type "number" :title "Enter the volume" :name "acid"
+                                        ;(format nil "~A-acid" id )
+                                 :value 100 :class "txt" :required "required"))
+                    (:td (:input :type "number" :title "Enter the dilution factor"
+                                 :name "dil" :value 1 :class "txt"
+                                 :required "required"))))))))))
+
+(defmethod make-sample-table ((s fecal-spectra-list))
+  (let ((spectra-list (los s))
+        (count 0))
+    (who:with-html-output
+        (*standard-output* nil :prologue nil :indent t)
+      (:table (:tr
+               (:th "#")
+               (:th "ID" )
+               (:th "Sample Weight (mg)")
+               (:th "Dilution Factor"))
+              (dolist (spectra spectra-list)
+                (let ((id (id spectra))
+                      (count (incf count)))
+                  (cl-who:htm
+                   (:tr
+                    (:td (str count))
                     (:td (:input :type "text" :name "id" :value (str id) :class "txt"
                                  :readonly "readonly"))
-                    (:td (:input :type "text" :name "vol"
-                                 :value 25 :class "txt"))))))))))
+                    (:td (:input :type "number" :title "Enter the weight" :name "vol"
+                                 :value 25 :class "txt" :required "required"))
+                    (:td (:input :type "number" :name "dil"
+                                 :value 1 :class "txt" :required "required"))))))))))
 
 (define-easy-handler (sample-table :uri "/sample-table") (spectra-csv matrix)
   (cond ((null spectra-csv) (redirect "/select"))
@@ -185,13 +199,11 @@
                (:h3 "The file has been uploaded to the server")
                (:p "File location: " (str file-name) )
                (:p "Sample type: " (string-capitalize (str matrix)))
-               (:h3 "Please indicate sample volume and the volume of acid added")
+               (:h3 "Please complete the sample table to determine concentration")
                (:form :action "/plots" :method "post" :id "infoList"
                       (:ol
                        (make-sample-table *spectra*))
                       (:input :type "submit" :value "Submit" :class "btn")))))))
-
-
 
 ;; Changing the form cells
 ;;<input type="hidden" name="hiddenfield" value="text" />
@@ -226,22 +238,24 @@
        do (loop for spectra in spectra-list
              if (string= (id spectra) (cdr id))
              do (sample-size-info spectra (process-entry (cdr vol))
-                                  (process-entry (cdr acid))
-                                  (process-entry (cdr dil)))))))
+                                  (process-entry (cdr dil))
+                                  (process-entry (cdr acid)))))))
 
 (defmethod process-form ((s fecal-spectra-list) parameters-a-list)
   (let ((spectra-list (los s)))
-    (loop for (id vol) on parameters-a-list by #'cddr
+    (loop for (id vol dil) on parameters-a-list by #'cdddr
        do (loop for spectra in spectra-list
              if (string= (id spectra) (cdr id))
-             do (sample-size-info spectra (process-entry (cdr vol)))))))
+             do (sample-size-info spectra (process-entry (cdr vol))
+                                  (process-entry (cdr dil)))))))
 
-;; (hunchentoot:define-easy-handler (info :uri "/info") ()
-;;   (let ((alop (hunchentoot:post-parameters*))) ; post-parameters is an a-list of parameters from the sample-table form
-;;     (process-form *spectra* alop))
-;;   (mapcar #'delete-file (directory (concatenate 'string *data-repository* "/*.png")))
-;;   (plot-data *spectra*)
-;;   (redirect "/plots"))
+;; Useful for debugging processing post-parameters
+;; Make this form action
+(hunchentoot:define-easy-handler (print-param :uri "/print-param") ()
+  (let ((params (hunchentoot:post-parameters*)))
+    (standard-page (:title "print params")
+      (:p (str params))
+      (:p (str (mapcar (lambda (x) (type-of (cdr x))) params))))))
 
 (hunchentoot:define-easy-handler (plots :uri "/plots") ()
   (process-form *spectra* (hunchentoot:post-parameters*)) ;;post-parameters* is an a-list of parameters-a-list from the sample-table form

@@ -1,7 +1,8 @@
 ;;;; porph-screen.lisp
 
 ;;TODO: Add volume/weight and acid etc to the report
-;;TODO: Allow tech to toggle interference
+;;TODO: Allow tech to toggle interference.
+;;TODO: Allow online result review.
 
 (in-package :porph-screen)
 ;;; "porph-screen" goes here. Hacks and glory await!
@@ -22,70 +23,26 @@
 ;; (defstruct triangle "The three points in an absorbance curve" base1 peak base2)
 
 (clsql:def-view-class spectra ()
-  ((uid
-    :db-kind :key
-    :db-constraints :not-null
-    :initarg :uid
-    :type (string 100)
-    :accessor id)
-   (id
-    :initarg :id
-    :type (string 30)
-    :accessor id)
-   (nm
-    :initarg :nm
-    :type list
-    :accessor nm)
-   (ab
-    :initarg :ab
-    :type list
-    :accessor ab)
-   (bkgd
-    :initarg :bkgd
-    :type list
-    :accessor bkgd)
-   (net-ab
-    :initarg :net-ab
-    :type float
-    :accessor net-ab)
-   (matrix
-    :initarg :matrix
-    :type (sting 10)
-    :accessor matrix)
-   (vol
-    :initarg :vol
-    :type float
-    :accessor vol)
-   (concentration
-    :initarg :concentration
-    :type integer
-    :accessor concentration)
-   (result
-    :initarg :result
-    :type (string 15)
-    :accessor result)
-   (interference
-    :initarg :interference
-    :type (string 1)
-    :accessor interference)))
+  ((uid :db-kind :key :db-constraints :not-null
+        :initarg :uid :type (string 100) :accessor id)
+   (id :initarg :id :type (string 30) :accessor id)
+   (nm :initarg :nm :type list :accessor nm)
+   (ab :initarg :ab :type list :accessor ab)
+   (bkgd :initarg :bkgd :type list :accessor bkgd)
+   (net-ab :initarg :net-ab :type float :accessor net-ab)
+   (matrix :initarg :matrix :type (string 10) :accessor matrix)
+   (vol :initarg :vol :type float :accessor vol)
+   (dil :initarg :dil :type float :accessor dil)
+   (concentration :initarg :concentration :type integer :accessor concentration)
+   (result :initarg :result :type (string 15) :accessor result)
+   (interference :initarg :interference :type (string 1) :accessor interference)))
 
 (clsql:def-view-class urine-spectra (spectra)
-  ((matrix
-    :initform "urine"
-    :type (string 10))
-   (acid
-    :initarg :acid
-    :type float
-    :accessor acid)
-   (dil
-    :initarg :dil
-    :type float
-    :accessor dil)))
+  ((matrix :initform "urine" :type (string 10))
+   (acid :initarg :acid :type float :accessor acid)))
 
 (clsql:def-view-class fecal-spectra (spectra)
-  ((matrix
-    :initform "fecal"
-    :type (string 10))))
+  ((matrix :initform "fecal" :type (string 10))))
 
 ;; (defclass spectra ()
 ;;     ((id :initarg :id :accessor id)
@@ -107,14 +64,17 @@
 ;;      (vol :initarg :mass :accessor vol)))
 
 (defclass spectra-list ()
+  ;; Parent spectra object
   ((los :initarg :los :accessor los)
    (matrix :initarg :matrix :accessor matrix)))
 
 (defclass urine-spectra-list (spectra-list)
+  ;; Urine spectra
   ((los :initarg :los :accessor los)
    (matrix :initform "urine")))
 
 (defclass fecal-spectra-list (spectra-list)
+  ;; Fecal spectra
   ((los :initarg :los :accessor los)
    (matrix :initform "fecal")))
 
@@ -209,20 +169,21 @@
       (setf (matrix spectra) matrix)
       (push spectra accum))))
 
-(defgeneric sample-size-info (spectra &optional amount acid dil)
+;; C-c C-u undefine function
+(defgeneric sample-size-info (spectra &optional amount dil acid)
   (:documentation
    "Add information about sample mass or volume for concentration
    calculations"))
 
-(defmethod sample-size-info ((s urine-spectra) &optional amount acid dil)
+(defmethod sample-size-info ((s urine-spectra) &optional amount dil acid)
   (setf (vol s) amount)
   (setf (acid s) acid)
   (setf (dil s) dil))
 
-(defmethod sample-size-info ((s fecal-spectra) &optional amount acid dil)
-  (declare (ignore dil)
-           (ignore acid))
-    (setf (vol s) amount))
+(defmethod sample-size-info ((s fecal-spectra) &optional amount dil acid)
+  (declare (ignore acid))
+  (setf (vol s) amount)
+  (setf (dil s) dil))
 
 (defparameter *urine-constant* 500 "(Net-Abs/Milimolar extinction coefficient * dil) * volume of urine in mL")
 
@@ -246,8 +207,9 @@
 
 (defmethod calculate-concentration ((s fecal-spectra) &optional (constant *fecal-constant*))
   (with-accessors ((v vol)
+                   (d dil)
                    (n net-ab)) s
-    (let ((conc-per-day (/ (* n constant) v)))
+    (let ((conc-per-day (* (/ (* n constant) v) 1000 d)))
       (setf (concentration s) (round conc-per-day)))))
 
 ;; Normal if concentration <110  nmol/d for 24 h collections
@@ -320,7 +282,6 @@ Return concentration and class in a list"))
                              :database-type :sqlite3)
       (dolist (spectra spectra-list)
         (clsql:update-records-from-instance spectra :database db)))))
-
 
 ;; (defun print-spectra-list (spectra-list &optional (data-pathname *data-pathname*))
 ;;   "Print the spectra list to file"

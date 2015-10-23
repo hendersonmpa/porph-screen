@@ -1,0 +1,13 @@
+#+TITLE:Porphyrin Screen Interpretation
+#+DATE: <2015-10-22 Thu>
+#+OPTIONS: texht:t
+#+LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS:
+#+LATEX_HEADER:
+#+LATEX_HEADER_EXTRA:
+
+* Poster
+** Implementation
+- Optimization process
+** Validation
+- Comparison to drop-line quantitation.

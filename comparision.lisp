@@ -1,4 +1,4 @@
-;;; Comparison to user selected drop line and automated drop linepppppppppp
+;;; Comparison to user selected drop line and automated drop line
 
 (in-package :porph-screen)
 
@@ -51,7 +51,6 @@
         (push object accum )))))
 
 ;;(single-plot (car *test-object*))
-
 
 ;; User interface
 

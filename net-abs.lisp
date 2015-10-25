@@ -43,19 +43,14 @@
 
 ;; Given x for the peak interpolate point on the baseline
 ; result --> point
-(defmethod interpolate  ((triangle-object triangle))
+(defmethod interpolate ((triangle-object triangle))
   (with-accessors ((px peak-x)) triangle-object
-    (let* ((m (slope triangle-object))
-           (b (intercept triangle-object))
-           (y (+ b (* m px))))
-      (values px y))))
+    (let ((m (slope triangle-object))
+          (b (intercept triangle-object)))
+      (+ b (* m px)))))
 
 ;;(interpolate peak base1 base2)
-
-;; (defun drop-net-abs (spectra-struct)
-;;   (let* ((triangle (spectra-triangle spectra-struct))
-;;          (peak (triangle-peak triangle))
-;;          (base1 (triangle-base1 triangle))
-;;          (base2 (triangle-base2 triangle))
-;;          (baseline (interpolate peak base1 base2)))
-;;     (delta #'point-y baseline peak)))
+(defmethod drop-net-abs ((triangle-object triangle))
+  (with-accessors ((py peak-y)) triangle-object
+    (let* ((drop-line-y (interpolate triangle-object)))
+      (- py drop-line-y))))

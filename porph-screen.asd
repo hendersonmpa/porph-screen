@@ -20,4 +20,5 @@
                (:file "porph-screen")
                (:file "web-app")
                (:file "comparision")
-               (:file "net-abs")))
+;               (:file "net-abs")
+               ))

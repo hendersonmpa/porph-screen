@@ -6,6 +6,11 @@
 #+LATEX_HEADER:
 #+LATEX_HEADER_EXTRA:
 
+
+* TODO Add volume/weight and acid etc to the report
+* TODO Allow tech to toggle interference.
+* TODO Allow online result review.
+
 * Poster
 ** Implementation
 - Optimization process

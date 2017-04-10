@@ -4,9 +4,9 @@
 
 ;;; Spectra Classes
 (clsql:def-view-class spectra ()
-  ((uid :db-kind :key :db-constraints :not-null
-        :initarg :uid :type (string 100) :accessor id)
-   (id :initarg :id :type (string 30) :accessor id)
+  ((id :initarg :id :type (string 100) :accessor id)
+   (datetime :initarg :datetime :initform (clsql:utime->time (get-universal-time))
+         :type clsql:wall-time :accessor datetime)
    (nm :initarg :nm :type list :accessor nm)
    (ab :initarg :ab :type list :accessor ab)
    (bkgd :initarg :bkgd :type list :accessor bkgd)
@@ -16,7 +16,7 @@
    (dil :initarg :dil :type float :accessor dil)
    (concentration :initarg :concentration :type integer :accessor concentration)
    (result :initarg :result :type (string 15) :accessor result)
-   (interference :initarg :interference :type (string 1) :accessor interference)))
+   (interference :initarg :interference :type (string 10) :accessor interference)))
 
 (clsql:def-view-class urine-spectra (spectra)
   ((matrix :initform "urine" :type (string 10))
@@ -43,14 +43,12 @@
 ;;; Make instance functions
 (defun make-urine-spectra (id nm ab)
   (make-instance 'urine-spectra
-                 :uid (concatenate 'string id "-" (write-to-string (local-time:now)))
                  :id id
                  :nm nm
                  :ab ab))
 
 (defun make-fecal-spectra (id nm ab)
   (make-instance 'fecal-spectra
-                 :uid (concatenate 'string id "-" (write-to-string (local-time:now)))
                  :id id
                  :nm nm
                  :ab ab))

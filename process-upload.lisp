@@ -1,15 +1,14 @@
 ;;; file process-upload.lisp
 
+;;; Process the uploaded csv file into spectra list object
 (in-package :porph-screen)
 
 ;;; Data Management
 ;;(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
-(defparameter *data-repository* "/home/mpah/Data/")
-(defparameter *test-file* (concatenate 'string *data-repository* "FPORS 2014-09-04.csv"))
-(defparameter *db-file* (concatenate 'string *data-repository* "porph_screen.sqlite"))
+(defparameter *data-repository* "/data/")
+(defparameter *test-file* (concatenate 'string *data-repository* "UPORS_2014-09-15.csv"))
 ;;(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
 (defparameter *data-pathname* nil "The local name of the raw data file")
-
 ;;; Data Processing
 (defun slurp-stream (stream)
   (let ((seq (make-string (file-length stream))))
@@ -36,14 +35,13 @@
 (defun get-sample-names (id-line)
   (let ((ids nil))
     (dolist (entry id-line (reverse ids))
-      (cond ((not (equalp entry ""))(push entry ids))
+      (cond ((not (equalp entry ""))
+             (push entry ids))
             (t nil)))))
 
 (defun rotate (list-of-lists)
 "Matrix transpose a list of lists so that column-major data becomes row major."
   (apply #'mapcar #'list list-of-lists))
-
-
 
 ;;; Populate the objects
 (defun parse-data (file-path matrix)
@@ -53,6 +51,7 @@
          (id-line (car data-set))
          (ids (get-sample-names id-line))
          (rotated-data (rotate (cddr data-set))))
+    (print ids)
     (cond ((string= matrix "urine")
            (make-urine-spectra-list ids rotated-data))
           ((string= matrix "fecal")

@@ -6,7 +6,9 @@
 #+LATEX_HEADER:
 #+LATEX_HEADER_EXTRA:
 
+* TODO Area under the curve
 
+* TODO Ensure correct peak.
 * TODO Add volume/weight and acid etc to the report
 * TODO Allow tech to toggle interference.
 * TODO Allow online result review.

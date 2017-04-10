@@ -14,10 +14,10 @@
 (defun start-server ()
   (unless *my-acceptor*
     (pushnew (hunchentoot:create-folder-dispatcher-and-handler
-              "/static/" "~/lisp/site/porph-screen/static/")
+              "/static/" "/home/mpah/lisp/site/porph-screen/static/")
              hunchentoot:*dispatch-table* :test #'equal)
     (pushnew (hunchentoot:create-folder-dispatcher-and-handler
-              "/data/" "~/Data/")
+              "/data/" "/data/")
              hunchentoot:*dispatch-table* :test #'equal)
     (setf *my-acceptor*
           (hunchentoot:start (make-instance

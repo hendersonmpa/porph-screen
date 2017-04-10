@@ -33,7 +33,7 @@ min[z(x), z-bar(x,w)]
 z-bar(x,w) = [z(x + w) + z (x - w)]/2"
   (let ((accum nil)
         (len (length z-list)))
-    (dotimes (p len (reverse accum))
+    (dotimes (p len (nreverse accum))
       (push (min (elt z-list p) (z-bar z-list p w)) accum))))
 
 (defun mppc-do (spectra-object &optional (n *iterations*))
@@ -53,8 +53,8 @@ gnuplot> plot for [IDX=start:end:step] 'file-name' index IDX u 1:2 title columnh
   (terpri stream))
 
 (defun mppc-to-file (spectra-object &optional (w *window*) (n *iterations*) )
-  "gnuplot> plot for [IDX=0:50:10] 'mppc_5' index IDX u 1:2 title columnheader(1)"
-  (let ((file-name (concatenate 'string \"mppc_\" (write-to-string w)))
+  "gnuplot> plot for [IDX=0:50:5] 'mppc_5' index IDX u 1:2 title columnheader(1)"
+  (let ((file-name (concatenate 'string "mppc_" (write-to-string w)))
         (z-list (ab spectra-object))
         (x-list (nm spectra-object)))
     (with-open-file (out file-name :direction :output
@@ -70,6 +70,28 @@ gnuplot> plot for [IDX=start:end:step] 'file-name' index IDX u 1:2 title columnh
          (corrected (map 'list #'- ab background)))
     (setf (bkgd spectra-object) background)
     corrected))
+
+
+(defun print-background-corrected (spectra-object &optional (stream t))
+  (let* ((nm (nm spectra-object))
+         (corrected (background-substraction spectra-object))
+         (bg (mppc-do spectra-object))
+         (ab (ab spectra-object))
+         (y-lol (list ab bg corrected)))
+    (dolist (ylist y-lol)
+      (loop for x in nm
+        for y in ylist
+        do (format stream "~A ~20T~A~%" x y))
+     (format stream "~%~%"))))
+
+
+;; (setf *spectra* (build-spectra-list *test-file* "urine"))
+;; (defparameter *example* (car (los *spectra*)))
+;; (with-open-file (out "~/lisp/site/porph-screen/devel/corrected.dat"
+;;                      :direction :output
+;;                      :if-exists :supersede)
+;;   (print-background-corrected *example* out))
+
 
 (defun find-net-ab (spectra-object &optional (lower-limit 401) (upper-limit 405))
   (let* ((alon (nm spectra-object))

@@ -14,7 +14,7 @@
 (defun start-server ()
   (unless *my-acceptor*
     (pushnew (hunchentoot:create-folder-dispatcher-and-handler
-              "/static/" "/home/mpah/lisp/site/porph-screen/static/")
+              "/static/" "~/lisp/site/porph-screen/static/")
              hunchentoot:*dispatch-table* :test #'equal)
     (pushnew (hunchentoot:create-folder-dispatcher-and-handler
               "/data/" "/data/")
@@ -83,8 +83,8 @@
                    :class "stamp")
              (:small (:p "Created with Common Lisp")
                      (:p "by Matthew P.A. Henderson")
-                     (:p "Division of Biochemistry, The Ottawa Hospital")
-                     (:p "e-mail: mathenderson at toh dot on dot ca")))))))
+                     (:p "Newborn Screening Ontario")
+                     (:p "e-mail: mhenderson at cheo dot on dot ca")))))))
 
 (define-easy-handler (select :uri "/select") ()
   (standard-page (:title "File Upload for Cary-60")

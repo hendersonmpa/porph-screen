@@ -6,15 +6,86 @@
 #+LATEX_HEADER:
 #+LATEX_HEADER_EXTRA:
 
-* TODO Area under the curve
 
-* TODO Ensure correct peak.
-* TODO Add volume/weight and acid etc to the report
-* TODO Allow tech to toggle interference.
-* TODO Allow online result review.
+* Setup 
+** Steps
+1. Install SBCL Common Lisp
+   - slwrap makes it easier to work at the sbcl command prompt
+2. Install Quicklisp - the package manager
 
-* Poster
-** Implementation
-- Optimization process
-** Validation
-- Comparison to drop-line quantitation.
+3. Install Sqlite3 
+4. Install Gnuplot for graphs
+5. Create directories
+6. Clone the porph-screen repo from github
+7. Create schema
+
+
+** Install SBCL
+- install from source to get the latest version
+- first install an old version of SBCL
+  - SBCL needs a lisp to compile itself therefore
+
+$ sudo apt install sbcl
+
+- download SBCL source code from http://www.sbcl.org/platform-table.html
+- extract it (version numbers will change)
+
+$ bzip2 -cd sbcl-2.x.x-source.tar.bz2 | tar xvf -
+$ cd sbcl-2.x.x
+$ sh make.sh --dynamic-space-size=60Gb --fancy
+
+- Optional tests and documentation
+$ cd tests && sh ./run-tests.sh
+$ cd ../doc/manual/ && make
+$ cd ../..  ## back to sbcl-2.x.x
+
+
+- sudo sh install.sh
+
+*** rlwrap
+$ sudo apt install rlwrap
+
+- add to bashrc
+
+alias sbcl='rlwrap /usr/local/bin/sbcl'
+
+** Install Quicklisp
+
+https://www.quicklisp.org/beta/
+
+- from the  Downloads directory
+
+$ curl -O http://beta.quicklisp.org/quicklisp.lisp
+
+- load this file in sbcl
+
+$ sbcl --load quicklisp.lisp
+
+- now at the sbcl prompt *
+
+(quicklisp-quickstart:install)
+(ql:add-to-init-file)
+
+
+
+
+** Create directories
+*** data
+$ sudo mkdir /data
+$ sudo chmod 777 data 
+*** code
+$ sudo mkdir ~/common-lisp
+** Install sqlite3 
+- db engine and libraries
+$ sudo apt install sqlite3 libsqlite3-dev
+
+** Install gnuplot
+$ sudo apt install gnuplot
+
+** Clone repositiory
+- navigate to ~/common-lisp
+$ git clone
+$ cd ~/common-lisp
+  git clone https://github.com/hendersonmpa/porph-screen.git
+
+** Run

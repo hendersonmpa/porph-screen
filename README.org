@@ -8,87 +8,100 @@
 
 
 * Setup 
-** Steps
+- $ indicates the shell prompt
+- * indicates the sbcl prompt
+** Overview
 1. Install SBCL Common Lisp
-   - slwrap makes it easier to work at the sbcl command prompt
-2. Install Quicklisp - the package manager
-3. Install Sqlite3 
-4. Install Gnuplot for graphs
-5. Create directories
-6. Clone the porph-screen repo from github
-7. Create schema
+2. Istall rlwrap - makes it easier to work at the sbcl command prompt
+3. Install Quicklisp - the package manager
+4. Install Sqlite3 
+5. Install Gnuplot for graphs
+6. Create directories
+7. Clone the porph-screen repo from github
 
 ** Install SBCL
-- install from source to get the latest version
-- first install an old version of SBCL
+- Install SBCL from source to get the latest version
+- First install an old version of SBCL
   - SBCL needs a lisp to compile itself therefore
 
-$ sudo apt install sbcl
+  - $ sudo apt install sbcl
 
-- download SBCL source code from http://www.sbcl.org/platform-table.html
-- extract it (version numbers will change)
+- Download SBCL source code from http://www.sbcl.org/platform-table.html
+- Extract it (version numbers will change)
 
-$ bzip2 -cd sbcl-2.x.x-source.tar.bz2 | tar xvf -
-$ cd sbcl-2.x.x
-$ sh make.sh --dynamic-space-size=60Gb --fancy
+  - $ bzip2 -cd sbcl-2.x.x-source.tar.bz2 | tar xvf -
+  - $ cd sbcl-2.x.x
+  - $ sh make.sh --dynamic-space-size=60Gb --fancy
 
 - Optional tests and documentation
-$ cd tests && sh ./run-tests.sh
-$ cd ../doc/manual/ && make
-$ cd ../..  ## back to sbcl-2.x.x
 
+  - $ cd tests && sh ./run-tests.sh
+  - $ cd ../doc/manual/ && make
+  - $ cd ../..  ## back to sbcl-2.x.x
+  - $ sudo sh install.sh
 
-- sudo sh install.sh
+** Install rlwrap
+- $ sudo apt install rlwrap
 
-*** rlwrap
-$ sudo apt install rlwrap
-
-- add to bashrc
-
-alias sbcl='rlwrap /usr/local/bin/sbcl'
+- Add the following line to .bashrc
+  - alias sbcl='rlwrap /usr/local/bin/sbcl'
 
 ** Install Quicklisp
 
 https://www.quicklisp.org/beta/
 
-- from the  Downloads directory
+- Download the script to a suitable directory
 
-$ curl -O http://beta.quicklisp.org/quicklisp.lisp
+  - $ curl -O http://beta.quicklisp.org/quicklisp.lisp
 
-- load this file in sbcl
+- Load this file in sbcl
 
-$ sbcl --load quicklisp.lisp
+  - $ sbcl --load quicklisp.lisp
 
-- now at the sbcl prompt *
+- Start sbcl as follows:
 
-(quicklisp-quickstart:install)
-(ql:add-to-init-file)
+  - $ sbcl
 
+- Run the following at the sbcl prompt "*"
 
+  - * (quicklisp-quickstart:install)
+
+  - * (ql:add-to-init-file)
 
 ** Create directories
 *** data
-$ sudo mkdir /data
-$ sudo chmod 777 data 
+- $ sudo mkdir /data
+- $ sudo chmod 777 data 
 *** code
-$ sudo mkdir ~/common-lisp
+- $ sudo mkdir ~/common-lisp
 ** Install sqlite3 
 - db engine and libraries
-$ sudo apt install sqlite3 libsqlite3-dev
+ - $ sudo apt install sqlite3 libsqlite3-dev
 
 ** Install gnuplot
-$ sudo apt install gnuplot
+- $ sudo apt install gnuplot
 
 ** Clone repositiory
-- navigate to ~/common-lisp
-$ git clone
-$ cd ~/common-lisp
-  git clone https://github.com/hendersonmpa/porph-screen.git
+- Navigate to ~/common-lisp
+  - $ git clone
+  - $ cd ~/common-lisp
+  - $ git clone https://github.com/hendersonmpa/porph-screen.git
 
-** Run
-- navigate to ~/common-lisp/porph-screen
+** Test 
+- Navigate to ~/common-lisp/porph-screen
+  - $ sbcl --load "start-app.lisp"
+- In a browser navigate to
+  - localhost:4242/select
 
-$ sbcl --noinform --load "start-app.lisp" 
+- End the process either by closing the terminal or Ctrl-C and selecting EXIT
 
-*** run in the background
-$ ./start-app.sh
+** Run in the background
+- Navigate to ~/common-lisp/porph-screen
+- $ ./start-app.sh
+
+- This script runs the app in a detached screen session. 
+- To reattach
+
+  - $ screen -r
+
+- The process can be ended closing the terminal or Ctrl-C and selecting EXIT

@@ -3,12 +3,12 @@
 ;;; Process the uploaded csv file into spectra list object
 (in-package :porph-screen)
 
-;;; Data Management
-;;(defparameter *test-file* "/Users/matthew/lisp/site/porph-screen/data/FPORS 2014-09-04.csv")
-(defparameter *data-repository* "/data/")
-(defparameter *test-file* (concatenate 'string *data-repository* "UPORS_2014-09-15.csv"))
-;;(defparameter *data-repository* "/Users/matthew/lisp/site/porph-screen/data/")
+(defparameter *data-repository* (merge-pathnames "data/" (user-homedir-pathname)))
+
+;;(defparameter *test-file* (concatenate 'string *data-repository* "UPORS_2014-09-15.csv"))
+
 (defparameter *data-pathname* nil "The local name of the raw data file")
+
 ;;; Data Processing
 (defun slurp-stream (stream)
   (let ((seq (make-string (file-length stream))))

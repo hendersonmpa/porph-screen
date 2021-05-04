@@ -17,7 +17,7 @@
               "/static/" "~/lisp/site/porph-screen/static/")
              hunchentoot:*dispatch-table* :test #'equal)
     (pushnew (hunchentoot:create-folder-dispatcher-and-handler
-              "/data/" "/data/")
+              "/data/" "~/data/")
              hunchentoot:*dispatch-table* :test #'equal)
     (setf *my-acceptor*
           (hunchentoot:start (make-instance
@@ -191,7 +191,7 @@
 
 (define-easy-handler (sample-table :uri "/sample-table") (spectra-csv matrix)
   (cond ((null spectra-csv) (redirect "/select"))
-        (t (let ((file-name (concatenate 'string *data-repository* (cadr spectra-csv))))
+        (t (let ((file-name (merge-pathnames (cadr spectra-csv) *data-repository*)))
              (rename-file (car spectra-csv) file-name)
              (setf *spectra* (build-spectra-list file-name matrix))
              (setf *data-pathname* (pathname file-name))
@@ -259,7 +259,7 @@
 
 (hunchentoot:define-easy-handler (plots :uri "/plots") ()
   (process-form *spectra* (hunchentoot:post-parameters*)) ;;post-parameters* is an a-list of parameters-a-list from the sample-table form
-  (mapcar #'delete-file (directory (concatenate 'string *data-repository* "/*.png")))
+  (mapcar #'delete-file (directory (merge-pathnames "/*.png" *data-repository*)))
   (plot-data *spectra*)
   (let ((spectra-list (los *spectra*)))
     (standard-page (:title "Absorbance Spectra")

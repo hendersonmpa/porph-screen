@@ -2,17 +2,22 @@
 
 (in-package :porph-screen)
 
-(defparameter *db-file* (concatenate 'string *data-repository* "porph_screen.sqlite"))
-
+(defparameter *db-file* (merge-pathnames "porph_screen.sqlite" *data-repository*))
 
 ;; Create tables from our view classes
 ;; Only the first time !!!!!
 (defun create-schema (&optional (db-file *db-file*))
+  "create the scheme file"
   (let ((db-connection (list db-file)))
     (clsql:with-database (db db-connection
                              :database-type :sqlite3)
       (clsql:create-view-from-class 'urine-spectra :database db)
       (clsql:create-view-from-class 'fecal-spectra :database db))))
+
+(defun confirm-db-exists (&optional (db-file *db-file*))
+  "check for database file and make if absent"
+  (unless (probe-file db-file)
+    (create-schema db-file)))
 
 (defun update-tables (spectra-list-object &optional (db-file *db-file*))
   "Update database with spectra-objects"

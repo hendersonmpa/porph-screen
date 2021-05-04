@@ -12,7 +12,8 @@
                  :parenscript
                  :cl-ppcre
                  :clsql
-                 :local-time)
+                 :local-time
+		 :eazy-gnuplot)
     :components ((:file "package")
                  (:file "spectra-objects")
                  (:file "instances")

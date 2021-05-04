@@ -25,12 +25,13 @@
     (map 'nil #'(lambda (x b)
                   (format strm "~D~C~D~C" x #\tab b #\Linefeed)) nm bkgd)))
 
+
 (defun gnuplot-stream (spectra-object)
   (let ((strm (make-array 0
                          :element-type 'character
                          :adjustable t
                          :fill-pointer 0))
-        (file-path (concatenate 'string *data-repository* (id spectra-object))))
+        (file-path (concatenate 'string (namestring *data-repository*) (id spectra-object))))
     (declare (ignorable file-path))
     (format strm "set term push~C" #\Linefeed)
     ;; (format strm "set terminal wxt size 550,500 enhanced font 'Verdana,10' persist ~C" #\Linefeed)
@@ -51,8 +52,6 @@
     (format strm "set output~C" #\Linefeed)
     (format strm "~Cset term pop~C" #\Linefeed #\Linefeed)
     (make-string-input-stream strm)))
-
-
 
 
 ;; (with-open-file (out "~/lisp/site/porph-screen/devel/spectra.gp"
@@ -80,6 +79,7 @@
                           :input (gnuplot-stream spectra)
                           :search t
                           :wait t))))
+
 (defun single-plot (spectra)
   (sb-ext:run-program "gnuplot" nil
                       :input (gnuplot-stream spectra)
@@ -102,3 +102,38 @@
 ;; (plot-data "test2" (second-derivative *data-set*))
 
 ;; (plot-data "test3" (smoothed-2derivative *data-set* 5))
+
+;;;; not used
+
+;; (defun plot-spectra (spectra-object)
+;;   "Plot a spectra"
+;;   (let* ((ab (ab spectra-object))
+;; 	 (nm (nm spectra-object))
+;; 	 (bkgd (bkgd spectra-object))
+;; 	 (data (mapcar 'list nm ab bkgd))
+;; 	 (file-path (merge-pathnames (concatenate 'string (id spectra-object) ".png")
+;; 				     *data-repository*))
+;; 	 (file-name (namestring file-path)))
+;;     (eazy-gnuplot:with-plots (*standard-output* :debug nil)
+;;       (eazy-gnuplot:gp-setup :terminal '(png truecolor)
+;; 			     :output file-name
+;;                              :xlabel "Wavelength"
+;;                              :ylabel "Absorbance"
+;;                              :ytic '(nomirror font ",8")
+;;                              :xtic '(nomirror font ",8" rotate by -45)
+;; 			     :grid '(ytics lc rgb ("'#bbbbbb'") lw 1 lt 0)
+;; 			     :grid '(xtics lc rgb ("'#bbbbbb'") lw 1 lt 0)
+;; 			     :style '(fill transparent solid 0.65 noborder)
+;;                              :style '(line 1 linetype 1 lc rgb ("'#4682b4'") lt 1 lw 3)
+;;                              :style '(line 2 linetype 3 lc rgb ("'#b22222'") lt 1 lw 3))
+;;       (eazy-gnuplot:plot
+;;        (lambda ()
+;;          (dolist (row data)
+;;            (format t "~&~{~d ~d ~d~%~}" row)))
+;;        :using '("1:2 w lines ls 2 title 'absorbance'"))
+;;       (eazy-gnuplot:plot
+;;        (lambda ()
+;; 	 (dolist (row data)
+;; 	   (format t "~&~{~d ~d ~d~%~}" row)))
+;;        :using '("1:3 w lines ls 1 title 'background'")))))
+;; 

@@ -12,13 +12,11 @@
 1. Install SBCL Common Lisp
    - slwrap makes it easier to work at the sbcl command prompt
 2. Install Quicklisp - the package manager
-
 3. Install Sqlite3 
 4. Install Gnuplot for graphs
 5. Create directories
 6. Clone the porph-screen repo from github
 7. Create schema
-
 
 ** Install SBCL
 - install from source to get the latest version
@@ -68,7 +66,6 @@ $ sbcl --load quicklisp.lisp
 
 
 
-
 ** Create directories
 *** data
 $ sudo mkdir /data
@@ -89,3 +86,9 @@ $ cd ~/common-lisp
   git clone https://github.com/hendersonmpa/porph-screen.git
 
 ** Run
+- navigate to ~/common-lisp/porph-screen
+
+$ sbcl --noinform --load "start-app.lisp" 
+
+*** run in the background
+$ ./start-app.sh

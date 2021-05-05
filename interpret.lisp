@@ -72,13 +72,14 @@ Return concentration and class in a list"))
 (defmethod classify-spectra ((s fecal-spectra))
   (calculate-concentration s)
   (let ((conc (concentration s)))
-    (cond ((and (>= conc -10) (<= conc 29))
+    (cond ((and (>= conc -10) (<= conc 28))
            (setf (result s) "Normal") s)
-          ((> conc 29) (setf (result s) "Elevated") s)
+          ((> conc 28) (setf (result s) "Elevated") s)
           (t (setf (result s) "Interference") s))))
 
 ;; (defparameter *spectra* (complete-spectra *test-file*))
 ;; Create a method to formate spectra output
+
 (defgeneric print-results (spectra strm)
 (:documentation  "Print the results of the spectra analysis"))
 
